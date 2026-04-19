@@ -2,30 +2,28 @@
 
 const WORD_LIST = {
   2: [
-    "OW", "AH", "GO", "NO",
+    "AH", "GO", "NO", "OW",
   ],
   3: [
-    "HIT", "RUN", "DIE", "CRY", "BAD", "ROT", "UGH",
-    "AIM", "FOG", "WAR", "NIX", "SIN", "DIM", "BOO",
-    "EEK", "CUT", "FOE", "ZAP", "DOT",
+    "AIM", "BAD", "BOO", "CRY", "CUT", "DIE",
+    "DIM", "DOT", "EEK", "FOE", "FOG", "HIT",
+    "NIX", "RUN", "SIN", "UGH", "WAR", "ZAP",
   ],
   4: [
-    "KILL", "SHOT", "DEAD", "RAWR", "OUCH", "SLAY",
-    "MAIM", "DARK", "LAMP", "FIRE", "BURN", "ARGH",
-    "DOOM", "HUNT", "FEAR", "BOOM", "BANG", "JOLT",
-    "BEEP", "BOOP", "DASH", "EVIL", "VOID"
+    "ARGH", "BANG", "BEEP", "BOOM", "BOOP", "BURN",
+    "DARK", "DASH", "DEAD", "DOOM", "EVIL", "FEAR",
+    "FIRE", "HUNT", "JOLT", "KILL", "LAMP", "MAIM",
+    "OUCH", "RAWR", "SHOT", "SLAY", "VOID",
   ],
   5: [
-    "FIEND", "BRUTE", "HORDE", "BLOOD", "DECAY",
-    "SHOOT", "BLAST", "TORCH", "FLARE", "FIGHT",
-    "NIGHT", "LIGHT", "SKULL", "CURSE", "DEATH",
-    "SWARM", "ALARM", "BLEED", "PANIC", "SLAIN",
-    "QUAKE", "QUELL", "QUICK", "EXILE"
+    "ALARM", "BLAST", "BLEED", "BLOOD", "BRUTE", "DEATH",
+    "DECAY", "EXILE", "FIEND", "FIGHT", "FLARE", "HORDE",
+    "LIGHT", "NIGHT", "PANIC", "QUAKE", "QUELL", "QUICK",
+    "SHOOT", "SKULL", "SWARM", "TORCH",
   ],
   6: [
-    "SIGNAL", "STRIKE", "ATTACK", "ESCAPE", "BATTLE",
-    "DAMAGE", "DANGER", "TARGET", "ASSAIL", "BEHEAD",
-    "MENACE", "AVENGE",
+    "ASSAIL", "ATTACK", "AVENGE", "BATTLE", "DAMAGE", "DANGER",
+    "ESCAPE", "MENACE", "SIGNAL", "STRIKE", "TARGET",
   ],
 };
 
