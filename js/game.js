@@ -2,9 +2,18 @@
 
 let last = performance.now();
 
+// Freeze timers when the window loses focus.
+windowFocused = document.hasFocus();
+window.addEventListener("blur", () => { windowFocused = false; });
+window.addEventListener("focus", () => {
+  windowFocused = true;
+  last = performance.now();
+});
+
 function frame(now) {
-  const dt = Math.min(50, now - last);
+  let dt = Math.min(50, now - last);
   last = now;
+  if (!windowFocused) dt = 0;
   sceneTime += dt;
   animTime += dt;
 

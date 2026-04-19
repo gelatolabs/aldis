@@ -41,6 +41,7 @@ let enemies = [];
 let spawnTimer = 3000;
 let elapsed = 0;
 let animTime = 0;
+let windowFocused = true;
 let gameOver = false;
 let score = 0;
 
