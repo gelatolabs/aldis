@@ -211,7 +211,14 @@ function storyTextFullyPrinted() {
 function storyTextClickAdvance() {
   if (currentScene !== SCENE.storyText) return;
   if (story.transitioning) return;
-  if (!storyTextFullyPrinted()) return;
+  // First click while still typing skips the animation. Next click advances.
+  if (!storyTextFullyPrinted()) {
+    const stage = STORY_STAGES[story.index];
+    if (stage && stage.type === "text") {
+      story.textTimer = stage.content.length * STORY_CHAR_MS;
+    }
+    return;
+  }
   story.transitioning = true;
 }
 
