@@ -116,6 +116,13 @@ canvas.addEventListener("mousedown", (e) => {
         return;
       }
     }
+    for (const btn of postProcessButtons()) {
+      if (buttonHit(btn, x, y)) {
+        settings.postProcess = btn.key;
+        saveSettings();
+        return;
+      }
+    }
     for (const s of sliders) {
       if (sliderHit(s, x, y)) {
         dragSlider = s;

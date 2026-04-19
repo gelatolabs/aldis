@@ -84,6 +84,7 @@ const settings = {
   accelMax: 10.0,
   volume: 0.5,
   display: "default",  // "default" | "scaled" | "fullscreen"
+  postProcess: true,
 };
 
 // Set true while pausing the game from the Options screen; resumes instead of
@@ -110,6 +111,7 @@ function loadSettings() {
         ["default","scaled","fullscreen"].includes(data.display)) {
       settings.display = data.display;
     }
+    if (typeof data.postProcess === "boolean") settings.postProcess = data.postProcess;
   } catch (e) { /* ignore */ }
 }
 
@@ -120,6 +122,7 @@ function saveSettings() {
       accelMax: settings.accelMax,
       volume: settings.volume,
       display: settings.display,
+      postProcess: settings.postProcess,
     }));
   } catch (e) { /* quota or privacy mode — ignore */ }
 }

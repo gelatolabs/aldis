@@ -119,7 +119,7 @@ function render() {
     case SCENE.highScoreEntry: drawHighScoreEntry();  break;
     case SCENE.leaderboard:    drawLeaderboardScene();break;
   }
-  drawCrtOverlay();
+  if (settings.postProcess) drawCrtOverlay();
 }
 
 // ---- CRT post-process ----
@@ -354,7 +354,9 @@ function drawSettings() {
   ctx.fillStyle = "#cfd";
   ctx.font = "14px 'Libertinus Mono', monospace";
   ctx.fillText("DISPLAY", 240, DISPLAY_ROW_Y - 14);
-  drawDisplayButtons();
+  ctx.fillText("POST-PROCESSING", POST_START_X, DISPLAY_ROW_Y - 14);
+  drawSegmentedButtons(displayButtons(), btn => settings.display === btn.key);
+  drawSegmentedButtons(postProcessButtons(), btn => settings.postProcess === btn.key);
 
   // Calibration subheading
   ctx.textAlign = "center";
@@ -397,9 +399,9 @@ function drawSettings() {
   }
 }
 
-function drawDisplayButtons() {
-  for (const btn of displayButtons()) {
-    const selected = settings.display === btn.key;
+function drawSegmentedButtons(btns, isSelected) {
+  for (const btn of btns) {
+    const selected = isSelected(btn);
     const hovered = isMouseOver(btn);
     let fill, stroke;
     if (selected) {

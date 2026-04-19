@@ -141,7 +141,7 @@ const sliders = [
 // "Scaled" is hidden when the viewport already can't fit the canvas natively.
 const DISPLAY_ROW_Y = 116;
 const DISPLAY_BTN_H = 34;
-const DISPLAY_BTN_W = 130;
+const DISPLAY_BTN_W = 110;
 const DISPLAY_BTN_GAP = 8;
 const DISPLAY_LABELS = { default: "Default", scaled: "Scaled", fullscreen: "Fullscreen" };
 
@@ -155,6 +155,26 @@ function displayButtons() {
     x: startX + i * (DISPLAY_BTN_W + DISPLAY_BTN_GAP),
     y: DISPLAY_ROW_Y,
     w: DISPLAY_BTN_W,
+    h: DISPLAY_BTN_H,
+  }));
+}
+
+// Post-processing segmented toggle on the right of the display row.
+const POST_BTN_W = 80;
+const POST_BTN_GAP = 8;
+const POST_START_X = W - 240 - POST_BTN_W * 2 - POST_BTN_GAP;
+
+function postProcessButtons() {
+  const options = [
+    { key: true,  label: "On"  },
+    { key: false, label: "Off" },
+  ];
+  return options.map((opt, i) => ({
+    key: opt.key,
+    label: opt.label,
+    x: POST_START_X + i * (POST_BTN_W + POST_BTN_GAP),
+    y: DISPLAY_ROW_Y,
+    w: POST_BTN_W,
     h: DISPLAY_BTN_H,
   }));
 }
