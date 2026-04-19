@@ -64,7 +64,7 @@ function frame(now) {
 }
 
 function update(dt) {
-  elapsed += dt;
+  if (!debug.freezeDiff) elapsed += dt;
   spawnTimer -= dt;
   if (spawnTimer <= 0) {
     spawnEnemy();

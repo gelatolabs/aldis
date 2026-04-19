@@ -6,14 +6,16 @@ const debug = {
   enabled: false,
   invuln: false,
   lamp: false,
+  freezeDiff: false,
 };
 
-const debugHud    = document.getElementById("debug-hud");
-const dbgDiff     = document.getElementById("dbg-diff");
-const dbgScore    = document.getElementById("dbg-score");
-const dbgEnd      = document.getElementById("dbg-end");
-const dbgInvuln   = document.getElementById("dbg-invuln");
-const dbgLamp     = document.getElementById("dbg-lamp");
+const debugHud      = document.getElementById("debug-hud");
+const dbgDiff       = document.getElementById("dbg-diff");
+const dbgScore      = document.getElementById("dbg-score");
+const dbgEnd        = document.getElementById("dbg-end");
+const dbgInvuln     = document.getElementById("dbg-invuln");
+const dbgLamp       = document.getElementById("dbg-lamp");
+const dbgFreezeDiff = document.getElementById("dbg-freeze-diff");
 
 function debugHudHasFocus() {
   return !!document.activeElement && debugHud.contains(document.activeElement);
@@ -46,6 +48,7 @@ function syncDebugHud() {
   // Difficulty + score are survival-only.
   dbgDiff.parentElement.style.display  = inStory ? "none" : "";
   dbgScore.parentElement.style.display = inStory ? "none" : "";
+  dbgFreezeDiff.style.display          = inStory ? "none" : "";
   dbgEnd.textContent = inStory ? "Clear stage" : "End game";
   if (!inStory) {
     if (document.activeElement !== dbgDiff) {
@@ -57,6 +60,7 @@ function syncDebugHud() {
   }
   dbgInvuln.classList.toggle("on", debug.invuln);
   dbgLamp.classList.toggle("on", debug.lamp);
+  dbgFreezeDiff.classList.toggle("on", debug.freezeDiff);
 }
 
 dbgDiff.addEventListener("change", () => {
@@ -97,6 +101,12 @@ dbgLamp.addEventListener("click", () => {
   debug.lamp = !debug.lamp;
   syncDebugHud();
   dbgLamp.blur();
+});
+
+dbgFreezeDiff.addEventListener("click", () => {
+  debug.freezeDiff = !debug.freezeDiff;
+  syncDebugHud();
+  dbgFreezeDiff.blur();
 });
 
 window.addEventListener("keydown", (e) => {
