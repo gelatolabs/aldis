@@ -64,6 +64,7 @@ function spawnTutorialEnemy() {
     radarFade: 0,
     radarX: 0,
     radarY: 0,
+    seed: makeEnemySeed(),
   };
   enemies.push(e);
   tutorial.enemy = e;
@@ -100,6 +101,7 @@ function updateTutorial(dt) {
   enemies = enemies.filter(e => e.alive || (e.deathAnim && e.deathAnim > 0));
 
   updateRadar(dt);
+  updateParticles(dt);
 
   if (tutorial.step === "aim" && tutorial.enemy && tutorial.enemy.alive) {
     if (tutorial.enemy.radarActive) {

@@ -246,6 +246,7 @@ function tryMatch(enemy) {
       const pts = enemy.typeKey === "runner" ? 250 : 50 * enemy.word.length;
       enemy.deathPoints = pts;
       score += pts;
+      spawnEnemyExplosion(enemy);
     }
   } else if (expectedMorse.startsWith(inputMorse)) {
     enemy.hitFlash = 60;

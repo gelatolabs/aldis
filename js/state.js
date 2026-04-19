@@ -40,6 +40,7 @@ const LAST_LETTER_DISPLAY_MS = 350;
 let enemies = [];
 let spawnTimer = 3000;
 let elapsed = 0;
+let animTime = 0;
 let gameOver = false;
 let score = 0;
 

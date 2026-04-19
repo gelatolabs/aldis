@@ -6,6 +6,7 @@ function frame(now) {
   const dt = Math.min(50, now - last);
   last = now;
   sceneTime += dt;
+  animTime += dt;
 
   if (currentScene === SCENE.splash && sceneTime >= SPLASH_TOTAL) {
     enterScene(SCENE.menu);
@@ -95,6 +96,7 @@ function update(dt) {
   enemies = enemies.filter(e => (e.alive) || (e.deathAnim && e.deathAnim > 0));
 
   updateRadar(dt);
+  updateParticles(dt);
 }
 
 // For each enemy, figure out the angular range its bounding box subtends from
@@ -196,6 +198,7 @@ function updateNameEntry(dt) {
 
 function resetGame() {
   enemies = [];
+  clearParticles();
   score = 0;
   resetNameEntry();
   player.missed = 0;

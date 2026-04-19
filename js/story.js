@@ -122,6 +122,7 @@ function spawnStoryEnemy(slotIdx) {
     radarX: 0,
     radarY: 0,
     storySlot: slotIdx,
+    seed: makeEnemySeed(),
   });
 }
 
@@ -157,6 +158,7 @@ function updateStory(dt) {
   enemies = enemies.filter(e => e.alive || (e.deathAnim && e.deathAnim > 0));
 
   updateRadar(dt);
+  updateParticles(dt);
 
   if (story.gameOver) { updateStoryFade(dt); return; }
 

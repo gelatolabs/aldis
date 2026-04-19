@@ -620,23 +620,19 @@ function drawShadows(bi) {
   const SHADOW_OFFSET = 10;
   const alpha = 0.85 * bi;
 
-  // Stage 1: draw all shadows on the offscreen canvas.
+  // Stage 1: draw silhouettes offset away from the lamp on the offscreen
+  // canvas. The procedural sprite is rendered solid black at the offset.
   litCtx.clearRect(0, 0, W, H);
   for (const e of enemies) {
     if (!e.alive) continue;
-    const t = ENEMY_TYPES[e.typeKey];
-    const img = sprites[t.sprite];
-    const silh = getSilhouette(img);
-    if (!silh) continue;
     const dx = e.x - lamp.x;
     const dy = e.y - lamp.y;
     const d = Math.hypot(dx, dy);
     if (d < 1) continue;
     const nx = dx / d;
     const ny = dy / d;
-    const ox = e.x + nx * SHADOW_OFFSET - t.w / 2;
-    const oy = e.y + ny * SHADOW_OFFSET - t.h / 2;
-    litCtx.drawImage(silh, ox, oy, t.w, t.h);
+    drawEnemySilhouette(litCtx, e, "#000",
+                        nx * SHADOW_OFFSET, ny * SHADOW_OFFSET);
   }
 
   // Stage 2: punch out every sprite's footprint so the shadow never occupies
@@ -645,11 +641,7 @@ function drawShadows(bi) {
   litCtx.globalCompositeOperation = "destination-out";
   for (const e of enemies) {
     if (!e.alive) continue;
-    const t = ENEMY_TYPES[e.typeKey];
-    const img = sprites[t.sprite];
-    const silh = getSilhouette(img);
-    if (!silh) continue;
-    litCtx.drawImage(silh, e.x - t.w / 2, e.y - t.h / 2, t.w, t.h);
+    drawEnemySilhouette(litCtx, e, "#000", 0, 0);
   }
   litCtx.restore();
 
@@ -659,27 +651,6 @@ function drawShadows(bi) {
   ctx.globalAlpha = alpha;
   ctx.drawImage(litCanvas, 0, 0);
   ctx.restore();
-}
-
-function drawEnemySprite(c, e) {
-  const t = ENEMY_TYPES[e.typeKey];
-  const img = sprites[t.sprite];
-  const sx = e.x - t.w / 2, sy = e.y - t.h / 2;
-  if (img && img.complete && img.naturalWidth > 0) {
-    c.drawImage(img, sx, sy, t.w, t.h);
-  } else {
-    c.fillStyle = "#888";
-    c.fillRect(sx, sy, t.w, t.h);
-  }
-  if (e.hitFlash > 0) {
-    const tint = img && img.complete ? getHitTint(img) : null;
-    if (tint) {
-      c.save();
-      c.globalAlpha = Math.min(0.6, e.hitFlash / 200);
-      c.drawImage(tint, sx, sy, t.w, t.h);
-      c.restore();
-    }
-  }
 }
 
 function enemyWordAlpha(e) {
@@ -732,16 +703,10 @@ function drawEnemyWords() {
 }
 
 function drawDeathAnims() {
+  drawParticles(ctx);
   for (const e of enemies) {
     if (e.alive || !e.deathAnim) continue;
     const t = e.deathAnim / 400;
-    ctx.save();
-    ctx.globalAlpha = t;
-    ctx.fillStyle = "#ffcc55";
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, 50 * (1 - t) + 10, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
 
     if (e.deathPoints) {
       const ty = ENEMY_TYPES[e.typeKey];
