@@ -6,6 +6,10 @@ litCanvas.width = W;
 litCanvas.height = H;
 const litCtx = litCanvas.getContext("2d");
 
+// Reused buffer for blurring the area behind the morse-chart glass panel.
+const chartBlurCanvas = document.createElement("canvas");
+const chartBlurCtx = chartBlurCanvas.getContext("2d");
+
 // Beam light profile, computed per-pixel once at startup. Two caches:
 //   beamGlowCanvas:   warm colour, perpendicular gaussian × inverse-square
 //                     along-axis — used as an additive backdrop reveal.
@@ -817,14 +821,56 @@ function drawMorseChart() {
   const boxY = Math.floor((H - boxH) / 2);
 
   ctx.save();
-  ctx.globalAlpha = 0.22;
-  ctx.fillStyle = "#000";
+
+  // Refraction: snapshot the area behind the panel into a small buffer (with
+  // a margin so the blur can sample slightly outside the panel) and stamp it
+  // back through a blur filter, clipped to the panel rect.
+  const m = 4;
+  const bw = boxW + m * 2, bh = boxH + m * 2;
+  if (chartBlurCanvas.width !== bw)  chartBlurCanvas.width  = bw;
+  if (chartBlurCanvas.height !== bh) chartBlurCanvas.height = bh;
+  chartBlurCtx.clearRect(0, 0, bw, bh);
+  chartBlurCtx.drawImage(canvas, boxX - m, boxY - m, bw, bh, 0, 0, bw, bh);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(boxX, boxY, boxW, boxH);
+  ctx.clip();
+  ctx.filter = "blur(0.9px)";
+  ctx.drawImage(chartBlurCanvas, boxX - m, boxY - m);
+  ctx.filter = "none";
+  ctx.restore();
+
+  // Dark tint to keep the letters readable against the refracted background.
+  ctx.fillStyle = "rgba(0,8,18,0.3)";
   ctx.fillRect(boxX, boxY, boxW, boxH);
+
+  // Faint diagonal sheen — almost invisible until something behind it lights
+  // up the area.
+  const sheen = ctx.createLinearGradient(
+    boxX, boxY, boxX + boxW, boxY + boxH);
+  sheen.addColorStop(0,    "rgba(255,255,255,0.10)");
+  sheen.addColorStop(0.5,  "rgba(255,255,255,0.02)");
+  sheen.addColorStop(1,    "rgba(255,255,255,0)");
+  ctx.fillStyle = sheen;
+  ctx.fillRect(boxX, boxY, boxW, boxH);
+
+  // Thin 1-pixel highlight along the top edge — the only "always-on" specular.
+  ctx.strokeStyle = "rgba(255,255,255,0.28)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(boxX + 0.5, boxY + 0.5);
+  ctx.lineTo(boxX + boxW - 0.5, boxY + 0.5);
+  ctx.stroke();
+
+  // Outer border
   ctx.globalAlpha = 0.55;
   ctx.strokeStyle = "#4a6a8a";
   ctx.lineWidth = 1;
   ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW, boxH);
+  ctx.globalAlpha = 1;
 
+  // Morse alphabet
   ctx.globalAlpha = 0.6;
   ctx.font = "bold 20px 'Libertinus Mono', monospace";
   for (let i = 0; i < MORSE_ORDER.length; i++) {
