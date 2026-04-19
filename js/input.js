@@ -133,11 +133,24 @@ window.addEventListener("mouseup", (e) => {
   dragSlider = null;
   pressEnd("mouse:" + e.button);
 });
+
+// Track the mouse so the renderer can highlight hovered controls. Coordinates
+// are in canvas space.
+let mouseCanvasX = -9999;
+let mouseCanvasY = -9999;
+
 window.addEventListener("mousemove", (e) => {
-  if (!dragSlider) return;
-  const { x } = canvasCoords(e);
-  setSliderFromX(dragSlider, x);
-  volumeSliderSound(dragSlider);
+  const { x, y } = canvasCoords(e);
+  mouseCanvasX = x;
+  mouseCanvasY = y;
+  if (dragSlider) {
+    setSliderFromX(dragSlider, x);
+    volumeSliderSound(dragSlider);
+  }
+});
+window.addEventListener("mouseleave", () => {
+  mouseCanvasX = -9999;
+  mouseCanvasY = -9999;
 });
 
 // Throttled dot-sound feedback while the volume slider is being moved, so

@@ -43,12 +43,23 @@ function currentButtons() {
     ];
   }
   if (currentScene === SCENE.settings) {
+    if (paused) {
+      return [
+        { label: "QUIT", variant: "danger",
+          x: cx - 160, y: 560, w: 140, h: 44,
+          action: () => { paused = false; enterScene(SCENE.menu); } },
+        { label: "RESUME",
+          x: cx +  20, y: 560, w: 140, h: 44,
+          action: () => { paused = false; enterScene(SCENE.game); } },
+      ];
+    }
     return [
-      paused
-        ? { label: "RESUME", x: cx - 70, y: 560, w: 140, h: 44,
-            action: () => { paused = false; enterScene(SCENE.game); } }
-        : { label: "START",  x: cx - 60, y: 560, w: 120, h: 44,
-            action: () => { resetGame(); enterScene(SCENE.game); } },
+      { label: "BACK", variant: "danger",
+        x: cx - 160, y: 560, w: 140, h: 44,
+        action: () => enterScene(SCENE.menu) },
+      { label: "START",
+        x: cx +  20, y: 560, w: 140, h: 44,
+        action: () => { resetGame(); enterScene(SCENE.game); } },
     ];
   }
   if (currentScene === SCENE.credits || currentScene === SCENE.scores

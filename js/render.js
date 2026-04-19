@@ -114,6 +114,11 @@ function render() {
   }
 }
 
+function isMouseOver(r) {
+  return mouseCanvasX >= r.x && mouseCanvasX <= r.x + r.w
+      && mouseCanvasY >= r.y && mouseCanvasY <= r.y + r.h;
+}
+
 // Radar-style radial grid — dim green concentric rings and spoke lines,
 // centered at (cx, cy).
 function drawRadarGrid(cx, cy) {
@@ -267,10 +272,19 @@ function drawSettings() {
 function drawDisplayButtons() {
   for (const btn of displayButtons()) {
     const selected = settings.display === btn.key;
-    ctx.fillStyle = selected ? "#2a5a3a" : "#15251c";
+    const hovered = isMouseOver(btn);
+    let fill, stroke;
+    if (selected) {
+      fill = hovered ? "#3a7a4c" : "#2a5a3a";
+      stroke = hovered ? "#afffbf" : "#7fff9f";
+    } else {
+      fill = hovered ? "#1e3a2c" : "#15251c";
+      stroke = hovered ? "#6acc8e" : "#4a9a6e";
+    }
+    ctx.fillStyle = fill;
     ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
-    ctx.strokeStyle = selected ? "#7fff9f" : "#4a9a6e";
-    ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = (selected || hovered) ? 2 : 1;
     ctx.strokeRect(btn.x + 0.5, btn.y + 0.5, btn.w, btn.h);
 
     ctx.fillStyle = "#cfd";
@@ -284,6 +298,7 @@ function drawDisplayButtons() {
 }
 
 function drawSlider(s) {
+  const hovered = sliderHit(s, mouseCanvasX, mouseCanvasY) || dragSlider === s;
   ctx.fillStyle = "#cfd";
   ctx.font = "14px 'Libertinus Mono', monospace";
   ctx.textAlign = "left";
@@ -296,20 +311,21 @@ function drawSlider(s) {
   // Track
   ctx.fillStyle = "#18202a";
   ctx.fillRect(s.x, s.y, s.w, s.h);
-  ctx.strokeStyle = "#334";
+  ctx.strokeStyle = hovered ? "#6a9ac0" : "#334";
   ctx.strokeRect(s.x + 0.5, s.y + 0.5, s.w, s.h);
 
   // Fill
   const t = (settings[s.key] - s.min) / (s.max - s.min);
-  ctx.fillStyle = "#4a8";
+  ctx.fillStyle = hovered ? "#7fd0a8" : "#4a8";
   ctx.fillRect(s.x, s.y, s.w * t, s.h);
 
   // Thumb
   const tx = s.x + s.w * t;
-  ctx.fillStyle = "#cfd";
-  ctx.fillRect(tx - 4, s.y - 6, 8, s.h + 12);
+  const tw = hovered ? 10 : 8;
+  ctx.fillStyle = hovered ? "#fff" : "#cfd";
+  ctx.fillRect(tx - tw / 2, s.y - 6, tw, s.h + 12);
   ctx.strokeStyle = "#000";
-  ctx.strokeRect(tx - 4 + 0.5, s.y - 6 + 0.5, 8, s.h + 12);
+  ctx.strokeRect(tx - tw / 2 + 0.5, s.y - 6 + 0.5, tw, s.h + 12);
 }
 
 // ---- Credits ----
@@ -381,13 +397,19 @@ function drawButtons() {
   for (const btn of currentButtons()) {
     ctx.save();
     if (btn.disabled) ctx.globalAlpha = 0.35;
-    ctx.fillStyle = "#15202e";
+    const hovered = !btn.disabled && isMouseOver(btn);
+    const danger = btn.variant === "danger";
+    ctx.fillStyle = danger
+      ? (hovered ? "#332626" : "#261c1c")
+      : (hovered ? "#1e2e42" : "#15202e");
     ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
-    ctx.strokeStyle = "#4a7a9a";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = danger
+      ? (hovered ? "#c89090" : "#8a6060")
+      : (hovered ? "#7fbfff" : "#4a7a9a");
+    ctx.lineWidth = hovered ? 2 : 1;
     ctx.strokeRect(btn.x + 0.5, btn.y + 0.5, btn.w, btn.h);
 
-    ctx.fillStyle = "#cfd";
+    ctx.fillStyle = danger ? "#e0b0b0" : "#b0d0e8";
     ctx.font = "bold 20px 'Libertinus Mono', monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
