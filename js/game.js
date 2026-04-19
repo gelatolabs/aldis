@@ -21,6 +21,12 @@ function frame(now) {
       const maxDur = lamp.beamKind === "dash" ? 220 : 80;
       if (lamp.beamTimer < maxDur) lamp.beamTimer = maxDur;
     }
+    // Debug: keep the lamp pinned at full intensity regardless of input.
+    if (debug.enabled && debug.lamp
+        && (currentScene === SCENE.game || currentScene === SCENE.story)) {
+      lamp.beamKind = "dash";
+      lamp.beamTimer = 220;
+    }
   }
   if (currentScene === SCENE.game || currentScene === SCENE.highScoreEntry
       || currentScene === SCENE.tutorial
@@ -38,6 +44,10 @@ function frame(now) {
   if (currentScene === SCENE.game && gameOver && topScores !== null) {
     enterScene(qualifiesForTop10() ? SCENE.highScoreEntry : SCENE.leaderboard);
   }
+
+  if (debug.enabled && currentScene !== SCENE.game
+      && currentScene !== SCENE.story) hideDebugHud();
+  if (debug.enabled) syncDebugHud();
 
   render();
   requestAnimationFrame(frame);
@@ -70,10 +80,12 @@ function update(dt) {
       if (e.hitFlash > 0) e.hitFlash -= dt;
       if (e.x < 40) {
         e.alive = false;
-        player.missed += 1;
-        if (player.missed >= player.maxHealth) {
-          gameOver = true;
-          fetchTopScores();
+        if (!debug.invuln) {
+          player.missed += 1;
+          if (player.missed >= player.maxHealth) {
+            gameOver = true;
+            fetchTopScores();
+          }
         }
       }
     } else if (e.deathAnim > 0) {

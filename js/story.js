@@ -144,7 +144,7 @@ function updateStory(dt) {
       if (e.x < 40) {
         e.alive = false;
         e.escaped = true;
-        story.gameOver = true;
+        if (!debug.invuln) story.gameOver = true;
       }
     } else {
       if (!e.escaped && typeof e.storySlot === "number"
