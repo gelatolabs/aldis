@@ -64,9 +64,15 @@ const SCENE = {
   credits: "credits",
   tutorial: "tutorial",
   game: "game",
+  story: "story",
+  storyText: "storyText",
   highScoreEntry: "highScoreEntry",
   leaderboard: "leaderboard",
 };
+
+// Which flow the player chose on the menu; read by the START button on the
+// options screen to route into survival or story.
+let pendingStart = "survival";
 let currentScene = SCENE.splash;
 let sceneTime = 0;
 

@@ -18,6 +18,8 @@ const tutorial = {
   fadeAlpha: 0,     // black-overlay alpha, used for fade-out and fade-in
   exiting: false,
   fadingIn: false,
+  onExit: null,     // optional callback invoked in place of the default
+                    // "enter game" behavior once the fade-to-black finishes
 };
 
 function tutorialSeen() {
@@ -34,7 +36,7 @@ function tutorialScrollLocked() {
       && (tutorial.step === "dot" || tutorial.step === "dash");
 }
 
-function enterTutorial() {
+function enterTutorial(onExit) {
   resetGame();
   tutorial.step = "dot";
   tutorial.enemy = null;
@@ -43,6 +45,7 @@ function enterTutorial() {
   tutorial.fadeAlpha = 0;
   tutorial.exiting = false;
   tutorial.fadingIn = false;
+  tutorial.onExit = onExit || null;
   enterScene(SCENE.tutorial);
 }
 
@@ -118,10 +121,17 @@ function updateTutorial(dt) {
     tutorial.fadeAlpha = Math.min(1, tutorial.fadeAlpha + dt / 500);
     if (tutorial.fadeAlpha >= 1) {
       markTutorialSeen();
-      resetGame();
       tutorial.exiting = false;
-      tutorial.fadingIn = true;
-      enterScene(SCENE.game);
+      if (tutorial.onExit) {
+        const cb = tutorial.onExit;
+        tutorial.onExit = null;
+        tutorial.fadeAlpha = 0;
+        cb();
+      } else {
+        resetGame();
+        tutorial.fadingIn = true;
+        enterScene(SCENE.game);
+      }
     }
   }
 }

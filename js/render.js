@@ -109,6 +109,8 @@ function render() {
     case SCENE.scores:         drawScoresScene();     break;
     case SCENE.credits:        drawCredits();         break;
     case SCENE.tutorial:       drawTutorial();        break;
+    case SCENE.story:          drawStory();           break;
+    case SCENE.storyText:      drawStoryText();       break;
     case SCENE.game:           drawGame();            break;
     case SCENE.highScoreEntry: drawHighScoreEntry();  break;
     case SCENE.leaderboard:    drawLeaderboardScene();break;

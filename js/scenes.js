@@ -34,11 +34,13 @@ function currentButtons() {
   const cx = W / 2;
   if (currentScene === SCENE.menu) {
     return [
-      { label: "PLAY",    x: cx - 120, y: 292, w: 240, h: 56,
-        action: () => enterScene(SCENE.settings) },
-      { label: "SCORES",  x: cx - 120, y: 362, w: 240, h: 56,
+      { label: "SURVIVAL", x: cx - 120, y: 292, w: 240, h: 56,
+        action: () => { pendingStart = "survival"; enterScene(SCENE.settings); } },
+      { label: "STORY",    x: cx - 120, y: 362, w: 240, h: 56,
+        action: () => { pendingStart = "story"; enterScene(SCENE.settings); } },
+      { label: "SCORES",   x: cx - 120, y: 432, w: 240, h: 56,
         action: () => { fetchTopScores(); enterScene(SCENE.scores); } },
-      { label: "CREDITS", x: cx - 120, y: 432, w: 240, h: 56,
+      { label: "CREDITS",  x: cx - 120, y: 502, w: 240, h: 56,
         action: () => enterScene(SCENE.credits) },
     ];
   }
@@ -60,7 +62,9 @@ function currentButtons() {
       { label: "START",
         x: cx +  20, y: 560, w: 140, h: 44,
         action: () => {
-          if (tutorialSeen()) {
+          if (pendingStart === "story") {
+            enterStory();
+          } else if (tutorialSeen()) {
             resetGame();
             enterScene(SCENE.game);
           } else {
@@ -74,6 +78,16 @@ function currentButtons() {
     return [
       { label: "MENU", x: cx - 60, y: H - 70, w: 120, h: 40,
         action: () => enterScene(SCENE.menu) },
+    ];
+  }
+  if (currentScene === SCENE.story && story.gameOver) {
+    return [
+      { label: "QUIT", variant: "danger",
+        x: cx - 160, y: H / 2 + 50, w: 140, h: 44,
+        action: () => exitStory() },
+      { label: "RETRY",
+        x: cx +  20, y: H / 2 + 50, w: 140, h: 44,
+        action: () => retryStoryStage() },
     ];
   }
   if (currentScene === SCENE.highScoreEntry) {

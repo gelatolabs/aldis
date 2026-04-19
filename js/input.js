@@ -19,8 +19,10 @@ canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
   if (currentScene !== SCENE.game
       && currentScene !== SCENE.settings
-      && currentScene !== SCENE.tutorial) return;
+      && currentScene !== SCENE.tutorial
+      && currentScene !== SCENE.story) return;
   if (tutorialScrollLocked()) return;
+  if (currentScene === SCENE.story && story.gameOver) return;
 
   const now = performance.now();
   const dt = Math.max(1, now - lastScrollAt);
@@ -90,6 +92,7 @@ canvas.addEventListener("mousedown", (e) => {
   // While scores are loading between game end and scene transition, swallow
   // clicks so the leaderboard/entry scene isn't missed.
   if (currentScene === SCENE.game && gameOver) return;
+  if (currentScene === SCENE.storyText) { storyTextClickAdvance(); return; }
   if (currentScene === SCENE.highScoreEntry) {
     for (const btn of currentButtons()) {
       if (buttonHit(btn, x, y)) {
@@ -127,7 +130,9 @@ canvas.addEventListener("mousedown", (e) => {
     if (buttonHit(btn, x, y)) { btn.action(); return; }
   }
 
-  if (currentScene === SCENE.game || currentScene === SCENE.tutorial) {
+  if (currentScene === SCENE.game
+      || currentScene === SCENE.tutorial
+      || (currentScene === SCENE.story && !story.gameOver)) {
     pressBegin("mouse:" + e.button);
   }
 });
@@ -173,7 +178,8 @@ window.addEventListener("keydown", (e) => {
     const inGame  = currentScene === SCENE.game && !gameOver;
     const inEntry = inNameEntry();
     const inTut   = currentScene === SCENE.tutorial;
-    if (!inGame && !inEntry && !inTut) return;
+    const inStory = currentScene === SCENE.story && !story.gameOver;
+    if (!inGame && !inEntry && !inTut && !inStory) return;
     if (e.repeat) return;
     e.preventDefault();
     pressBegin("key:Space");
