@@ -34,11 +34,11 @@ function currentButtons() {
   const cx = W / 2;
   if (currentScene === SCENE.menu) {
     return [
-      { label: "PLAY",    x: cx - 120, y: 312, w: 240, h: 56,
+      { label: "PLAY",    x: cx - 120, y: 292, w: 240, h: 56,
         action: () => enterScene(SCENE.settings) },
-      { label: "SCORES",  x: cx - 120, y: 382, w: 240, h: 56,
+      { label: "SCORES",  x: cx - 120, y: 362, w: 240, h: 56,
         action: () => { fetchTopScores(); enterScene(SCENE.scores); } },
-      { label: "CREDITS", x: cx - 120, y: 452, w: 240, h: 56,
+      { label: "CREDITS", x: cx - 120, y: 432, w: 240, h: 56,
         action: () => enterScene(SCENE.credits) },
     ];
   }
