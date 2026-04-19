@@ -84,15 +84,6 @@ function tutorialOnSignal(kind) {
 }
 
 function updateTutorial(dt) {
-  if (inputResetTimer > 0) {
-    inputResetTimer -= dt;
-    if (inputResetTimer <= 0) inputMorse = "";
-  }
-  if (lastLetterTimer > 0) {
-    lastLetterTimer -= dt;
-    if (lastLetterTimer <= 0) lastLetterMorse = "";
-  }
-
   for (const e of enemies) {
     if (e.alive) {
       e.x += e.vx * (dt / 1000);

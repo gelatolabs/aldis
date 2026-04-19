@@ -133,15 +133,6 @@ function spawnStoryEnemy(slotIdx) {
 function updateStory(dt) {
   if (story.gameOver) { updateStoryFade(dt); return; }
 
-  if (inputResetTimer > 0) {
-    inputResetTimer -= dt;
-    if (inputResetTimer <= 0) inputMorse = "";
-  }
-  if (lastLetterTimer > 0) {
-    lastLetterTimer -= dt;
-    if (lastLetterTimer <= 0) lastLetterMorse = "";
-  }
-
   for (const e of enemies) {
     if (e.alive) {
       e.x += e.vx * (dt / 1000);

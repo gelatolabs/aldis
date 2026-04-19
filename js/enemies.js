@@ -3,7 +3,7 @@
 const ENEMY_TYPES = {
   fodder: { label: "Fodder", w: 48, h: 48, wordList: WORDS_3_4,  speedMul: 1.0 },
   heavy:  { label: "Heavy",  w: 48, h: 48, wordList: WORDS_5_6,  speedMul: 0.7 },
-  runner: { label: "Runner", w: 48, h: 48, wordList: WORDS_FAST, speedMul: 1.9 },
+  runner: { label: "Runner", w: 48, h: 48, wordList: WORDS_2, speedMul: 1.9 },
 };
 
 const lampImg = new Image();
@@ -110,10 +110,8 @@ function hslHex(h, s, l) {
 function generatePalette(rng) {
   const h = rng() * 360;
   return {
-    hue:    h,
-    body:   hslHex(h, 55, 55),
-    limb:   hslHex(h, 55, 28),
-    accent: hslHex(h, 60, 78),
+    body: hslHex(h, 55, 55),
+    limb: hslHex(h, 55, 28),
   };
 }
 
