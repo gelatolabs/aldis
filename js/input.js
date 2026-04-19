@@ -195,7 +195,8 @@ window.addEventListener("keydown", (e) => {
   // P pauses the running game and toggles the options screen.
   if (e.code === "KeyP" && !e.repeat) {
     if ((currentScene === SCENE.game && !gameOver)
-        || currentScene === SCENE.tutorial) {
+        || currentScene === SCENE.tutorial
+        || (currentScene === SCENE.story && !story.gameOver)) {
       paused = true;
       pausedFrom = currentScene;
       enterScene(SCENE.settings);

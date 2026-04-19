@@ -339,6 +339,10 @@ function drawStory() {
   drawInputBuffer();
   drawMorseChart();
   drawStorySentence();
+  ctx.textAlign = "left";
+  ctx.font = "13px 'Libertinus Mono', monospace";
+  ctx.fillStyle = "#9ab";
+  ctx.fillText("Press P to pause", 16, 22);
   if (story.gameOver) {
     drawStoryGameOverDialog();
     drawButtons();
