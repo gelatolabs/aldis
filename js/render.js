@@ -638,6 +638,8 @@ function enemyWordAlpha(e) {
   return Math.min(1, a);
 }
 
+const ALERT_THRESHOLD_X = 260;
+
 function drawEnemyWords() {
   ctx.font = "bold 22px 'Libertinus Mono', monospace";
   const bi = beamIntensity();
@@ -647,8 +649,9 @@ function drawEnemyWords() {
     if (a <= 0.02) continue;
     const illum = lens ? enemyIllumination(e, lens.x, lens.y) * bi : 0;
     // If the enemy isn't actively tracked and isn't lit, freeze the word
-    // where the radar dot froze.
-    const useFrozen = !e.radarActive && illum <= 0.02;
+    // where the radar dot froze (unless close enough for red alert dot).
+    const inAlertRange = e.x <= ALERT_THRESHOLD_X;
+    const useFrozen = !inAlertRange && !e.radarActive && illum <= 0.02;
     const anchorX = useFrozen ? e.radarX : e.x;
     const anchorY = useFrozen ? e.radarY : e.y;
     const t = ENEMY_TYPES[e.typeKey];
@@ -706,7 +709,7 @@ function drawRadarDots() {
     if (!e.alive) continue;
     // Enemies close enough to get the red alert dot shouldn't also show a
     // green dot.
-    if (e.x <= 260) continue;
+    if (e.x <= ALERT_THRESHOLD_X) continue;
     let a = 0;
     if (e.radarActive) a = 1;
     else if (e.radarFade > 0) a = e.radarFade / RADAR_FADE_MS;
@@ -718,13 +721,12 @@ function drawRadarDots() {
 function drawAlertDots() {
   // Hide when the lamp is lit.
   if (beamIntensity() > 0) return;
-  const ALERT_THRESHOLD = 260;
   const ESCAPE_X = 40;
   for (const e of enemies) {
     if (!e.alive) continue;
-    if (e.x > ALERT_THRESHOLD) continue;
+    if (e.x > ALERT_THRESHOLD_X) continue;
     const p = Math.max(0, Math.min(1,
-      1 - (e.x - ESCAPE_X) / (ALERT_THRESHOLD - ESCAPE_X)));
+      1 - (e.x - ESCAPE_X) / (ALERT_THRESHOLD_X - ESCAPE_X)));
     // Flash rate ramps up as the enemy closes in (≈0.5 Hz → ≈1.2 Hz).
     const rate = 0.5 + p * 0.7;
     const phase = (elapsed / 1000) * rate;
@@ -770,22 +772,31 @@ function radarPing(x, y, alpha) {
 }
 
 function drawInputBuffer() {
-  const display = inputMorse || lastLetterMorse;
-  if (!display) return;
-  let target = enemyHitByBeam().enemy;
-  if (!target) target = enemies.find(e => e.deathAnim > 0);
-  if (!target) return;
-  const alpha = target.alive ? Math.max(0.6, enemyWordAlpha(target)) : 1;
-  if (alpha <= 0.02) return;
-  const t = ENEMY_TYPES[target.typeKey];
-  const sy = target.y - t.h / 2;
+  // Same freeze/fade logic as drawEnemyWords.
   const size = 22;
-  const w = measureMorse(display, size);
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  drawMorse(ctx, display, target.x - w / 2, sy - 46, size,
-            "rgba(255,220,120,0.95)");
-  ctx.restore();
+  const bi = beamIntensity();
+  const lens = bi > 0 ? beamLensPos() : null;
+  for (const e of enemies) {
+    const display = e.morse || e.lastMorse;
+    if (!display) continue;
+    const alpha = e.alive ? enemyWordAlpha(e)
+                          : (e.deathAnim > 0 ? 1 : 0);
+    if (alpha <= 0.02) continue;
+    const illum = lens ? enemyIllumination(e, lens.x, lens.y) * bi : 0;
+    const inAlertRange = e.x <= ALERT_THRESHOLD_X;
+    const useFrozen = e.alive && !inAlertRange
+                   && !e.radarActive && illum <= 0.02;
+    const anchorX = useFrozen ? e.radarX : e.x;
+    const anchorY = useFrozen ? e.radarY : e.y;
+    const t = ENEMY_TYPES[e.typeKey];
+    const sy = anchorY - t.h / 2;
+    const w = measureMorse(display, size);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawMorse(ctx, display, anchorX - w / 2, sy - 46, size,
+              "rgba(255,220,120,0.95)");
+    ctx.restore();
+  }
 }
 
 function drawHUD() {

@@ -47,7 +47,24 @@ function spawnEnemy() {
     radarX: 0,
     radarY: 0,
     seed: makeEnemySeed(),
+    morse: "",
+    morseTimer: 0,
+    lastMorse: "",
+    lastTimer: 0,
   });
+}
+
+function decayEnemyMorseTimers(dt) {
+  for (const e of enemies) {
+    if (e.morseTimer > 0) {
+      e.morseTimer -= dt;
+      if (e.morseTimer <= 0) e.morse = "";
+    }
+    if (e.lastTimer > 0) {
+      e.lastTimer -= dt;
+      if (e.lastTimer <= 0) e.lastMorse = "";
+    }
+  }
 }
 
 // ---- Procedural sprites ----

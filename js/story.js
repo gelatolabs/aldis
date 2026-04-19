@@ -123,6 +123,10 @@ function spawnStoryEnemy(slotIdx) {
     radarY: 0,
     storySlot: slotIdx,
     seed: makeEnemySeed(),
+    morse: "",
+    morseTimer: 0,
+    lastMorse: "",
+    lastTimer: 0,
   });
 }
 
@@ -159,6 +163,7 @@ function updateStory(dt) {
 
   updateRadar(dt);
   updateParticles(dt);
+  decayEnemyMorseTimers(dt);
 
   if (story.gameOver) { updateStoryFade(dt); return; }
 

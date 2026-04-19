@@ -65,6 +65,10 @@ function spawnTutorialEnemy() {
     radarX: 0,
     radarY: 0,
     seed: makeEnemySeed(),
+    morse: "",
+    morseTimer: 0,
+    lastMorse: "",
+    lastTimer: 0,
   };
   enemies.push(e);
   tutorial.enemy = e;
@@ -102,6 +106,7 @@ function updateTutorial(dt) {
 
   updateRadar(dt);
   updateParticles(dt);
+  decayEnemyMorseTimers(dt);
 
   if (tutorial.step === "aim" && tutorial.enemy && tutorial.enemy.alive) {
     if (tutorial.enemy.radarActive) {

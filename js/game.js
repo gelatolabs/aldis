@@ -106,6 +106,7 @@ function update(dt) {
 
   updateRadar(dt);
   updateParticles(dt);
+  decayEnemyMorseTimers(dt);
 }
 
 // For each enemy, figure out the angular range its bounding box subtends from

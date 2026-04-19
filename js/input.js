@@ -205,43 +205,47 @@ window.addEventListener("keyup", (e) => {
 
 function inputSignal(kind) {
   if (kind === "dot") playDot(); else playDash();
-  lastLetterMorse = "";
-  lastLetterTimer = 0;
-  inputMorse += (kind === "dot" ? "." : "-");
-  inputResetTimer = LETTER_TIMEOUT_MS;
 
   if (currentScene === SCENE.tutorial) tutorialOnSignal(kind);
 
-  // During the game-over name entry the buffer is committed on idle timeout
-  // (see updateNameEntry) rather than matched against an enemy.
-  if (inNameEntry()) return;
-
-  const { enemy } = enemyHitByBeam();
-  if (!enemy) {
-    freezeInputDisplay();
-    inputMorse = "";
+  // Name entry uses global buffer. Game uses per-enemy buffers below.
+  if (inNameEntry()) {
+    lastLetterMorse = "";
+    lastLetterTimer = 0;
+    inputMorse += (kind === "dot" ? "." : "-");
+    inputResetTimer = LETTER_TIMEOUT_MS;
     return;
   }
-  tryMatch(enemy);
+
+  const targets = enemiesHitByBeam();
+  if (targets.length === 0) return;
+  const sym = kind === "dot" ? "." : "-";
+  for (const enemy of targets) {
+    enemy.lastMorse = "";
+    enemy.lastTimer = 0;
+    enemy.morse = (enemy.morse || "") + sym;
+    enemy.morseTimer = LETTER_TIMEOUT_MS;
+    matchEnemy(enemy);
+  }
 }
 
-function freezeInputDisplay() {
-  lastLetterMorse = inputMorse;
-  lastLetterTimer = LAST_LETTER_DISPLAY_MS;
-}
-
-function tryMatch(enemy) {
+// Match an enemy against its  morse buffer. Mutates the enemy:
+//   full match  → advance `typed`, freeze the buffer for display, may kill.
+//   prefix      → keep buffer, brief hitFlash.
+//   mismatch    → reset `typed` and the buffer.
+function matchEnemy(enemy) {
   const expectedChar = enemy.word[enemy.typed];
   if (!expectedChar) return;
   const expectedMorse = MORSE[expectedChar];
   if (!expectedMorse) return;
 
-  if (expectedMorse === inputMorse) {
+  if (expectedMorse === enemy.morse) {
     enemy.typed += 1;
     enemy.hitFlash = 160;
-    freezeInputDisplay();
-    inputMorse = "";
-    inputResetTimer = 0;
+    enemy.lastMorse = enemy.morse;
+    enemy.lastTimer = LAST_LETTER_DISPLAY_MS;
+    enemy.morse = "";
+    enemy.morseTimer = 0;
     if (enemy.typed >= enemy.word.length) {
       enemy.alive = false;
       enemy.deathAnim = 400;
@@ -250,13 +254,14 @@ function tryMatch(enemy) {
       score += pts;
       spawnEnemyExplosion(enemy);
     }
-  } else if (expectedMorse.startsWith(inputMorse)) {
+  } else if (expectedMorse.startsWith(enemy.morse)) {
     enemy.hitFlash = 60;
   } else {
     enemy.typed = 0;
     enemy.hitFlash = 0;
-    freezeInputDisplay();
-    inputMorse = "";
-    inputResetTimer = 0;
+    enemy.lastMorse = enemy.morse;
+    enemy.lastTimer = LAST_LETTER_DISPLAY_MS;
+    enemy.morse = "";
+    enemy.morseTimer = 0;
   }
 }
