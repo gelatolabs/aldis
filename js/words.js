@@ -192,20 +192,21 @@ const WORDS_THEMED = {
   ],
   3: [
     "HIT", "RUN", "DIE", "CRY", "BAD", "ROT", "UGH",
-    "AIM", "FOG", "WAR", "ARM", "SIN", "DIM", "BOO",
-    "EEK", "CUT", "FOE", "ZAP", "LEG", "DOT",
+    "AIM", "FOG", "WAR", "NIX", "SIN", "DIM", "BOO",
+    "EEK", "CUT", "FOE", "ZAP", "DOT",
   ],
   4: [
     "KILL", "SHOT", "DEAD", "RAWR", "OUCH", "SLAY",
     "MAIM", "DARK", "LAMP", "FIRE", "BURN", "ARGH",
-    "DOOM", "HUNT", "FEAR", "BOOM", "BANG", "HEAD",
-    "BEEP", "BOOP", "DASH",
+    "DOOM", "HUNT", "FEAR", "BOOM", "BANG", "JOLT",
+    "BEEP", "BOOP", "DASH", "EVIL", "VOID"
   ],
   5: [
     "FIEND", "BRUTE", "HORDE", "BLOOD", "DECAY",
     "SHOOT", "BLAST", "TORCH", "FLARE", "FIGHT",
     "NIGHT", "LIGHT", "SKULL", "CURSE", "DEATH",
     "SWARM", "ALARM", "BLEED", "PANIC", "SLAIN",
+    "QUAKE", "QUELL", "QUICK", "EXILE"
   ],
   6: [
     "SIGNAL", "STRIKE", "ATTACK", "ESCAPE", "BATTLE",
