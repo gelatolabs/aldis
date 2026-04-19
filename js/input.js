@@ -84,8 +84,17 @@ canvas.addEventListener("mousedown", (e) => {
   const { x, y } = canvasCoords(e);
 
   if (currentScene === SCENE.splash) { enterScene(SCENE.menu); return; }
-  if (currentScene === SCENE.game && gameOver) {
-    if (e.button === 0) enterScene(SCENE.menu);
+  // While scores are loading between game end and scene transition, swallow
+  // clicks so the leaderboard/entry scene isn't missed.
+  if (currentScene === SCENE.game && gameOver) return;
+  if (currentScene === SCENE.highScoreEntry) {
+    for (const btn of currentButtons()) {
+      if (buttonHit(btn, x, y)) {
+        if (!btn.disabled) btn.action();
+        return;
+      }
+    }
+    if (inNameEntry()) pressBegin("mouse:" + e.button);
     return;
   }
 
@@ -134,7 +143,9 @@ window.addEventListener("blur", clearInputState);
 
 window.addEventListener("keydown", (e) => {
   if (e.code !== "Space") return;
-  if (currentScene !== SCENE.game || gameOver) return;
+  const inGame  = currentScene === SCENE.game && !gameOver;
+  const inEntry = inNameEntry();
+  if (!inGame && !inEntry) return;
   if (e.repeat) return;
   e.preventDefault();
   pressBegin("key:Space");
@@ -150,6 +161,10 @@ function inputSignal(kind) {
   lastLetterTimer = 0;
   inputMorse += (kind === "dot" ? "." : "-");
   inputResetTimer = LETTER_TIMEOUT_MS;
+
+  // During the game-over name entry the buffer is committed on idle timeout
+  // (see updateNameEntry) rather than matched against an enemy.
+  if (inNameEntry()) return;
 
   const { enemy } = enemyHitByBeam();
   if (!enemy) {

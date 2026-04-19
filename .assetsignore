@@ -3,3 +3,4 @@ wrangler.toml
 .assetsignore
 .git
 .gitignore
+worker.js

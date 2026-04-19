@@ -103,11 +103,14 @@ function measureMorse(morse, size) {
 
 function render() {
   switch (currentScene) {
-    case SCENE.splash:   drawSplash();   break;
-    case SCENE.menu:     drawMenu();     break;
-    case SCENE.settings: drawSettings(); break;
-    case SCENE.credits:  drawCredits();  break;
-    case SCENE.game:     drawGame();     break;
+    case SCENE.splash:         drawSplash();          break;
+    case SCENE.menu:           drawMenu();            break;
+    case SCENE.settings:       drawSettings();        break;
+    case SCENE.scores:         drawScoresScene();     break;
+    case SCENE.credits:        drawCredits();         break;
+    case SCENE.game:           drawGame();            break;
+    case SCENE.highScoreEntry: drawHighScoreEntry();  break;
+    case SCENE.leaderboard:    drawLeaderboardScene();break;
   }
 }
 
@@ -278,6 +281,47 @@ function drawSlider(s) {
 
 // ---- Credits ----
 
+function drawScoresScene() {
+  drawBackdrop(W / 2, H / 2);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#cfd";
+  ctx.font = "bold 42px 'Libertinus Mono', monospace";
+  ctx.fillText("HIGH SCORES", W / 2, 110);
+
+  const boxX = W / 2 - 220, boxY = 160, boxW = 440, boxH = 380;
+  ctx.fillStyle = "rgba(30,50,60,0.35)";
+  ctx.fillRect(boxX, boxY, boxW, boxH);
+  ctx.strokeStyle = "#4a7a9a";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW, boxH);
+
+  ctx.font = "20px 'Libertinus Mono', monospace";
+  if (!topScores) {
+    ctx.fillStyle = "#9ab";
+    ctx.fillText("loading…", boxX + boxW / 2, boxY + boxH / 2);
+  } else if (topScores.length === 0) {
+    ctx.fillStyle = "#9ab";
+    ctx.fillText("no scores yet", boxX + boxW / 2, boxY + boxH / 2);
+  } else {
+    ctx.textAlign = "left";
+    for (let i = 0; i < topScores.length; i++) {
+      const row = topScores[i];
+      const y = boxY + 40 + i * 32;
+      ctx.fillStyle = "#9ab";
+      ctx.fillText(String(i + 1).padStart(2, " ") + ".", boxX + 30, y);
+      ctx.fillStyle = "#cfd";
+      ctx.fillText(row.name, boxX + 100, y);
+      ctx.textAlign = "right";
+      ctx.fillText(String(row.score), boxX + boxW - 30, y);
+      ctx.textAlign = "left";
+    }
+  }
+
+  ctx.textAlign = "left";
+  drawButtons();
+}
+
 function drawCredits() {
   drawBackdrop(W / 2, H / 2);
 
@@ -302,6 +346,8 @@ function drawCredits() {
 
 function drawButtons() {
   for (const btn of currentButtons()) {
+    ctx.save();
+    if (btn.disabled) ctx.globalAlpha = 0.35;
     ctx.fillStyle = "#15202e";
     ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
     ctx.strokeStyle = "#4a7a9a";
@@ -315,6 +361,7 @@ function drawButtons() {
     ctx.fillText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
     ctx.textBaseline = "alphabetic";
     ctx.textAlign = "left";
+    ctx.restore();
   }
 }
 
@@ -781,16 +828,163 @@ function drawMorseChart() {
   ctx.restore();
 }
 
+// Simple loading overlay shown after death while the leaderboard loads.
 function drawGameOver() {
-  ctx.fillStyle = "rgba(0,0,0,0.7)";
+  ctx.fillStyle = "rgba(0,0,0,0.82)";
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "#cfd";
   ctx.textAlign = "center";
-  ctx.font = "bold 56px 'Libertinus Mono', monospace";
-  ctx.fillText("SIGNAL LOST", W / 2, H / 2 - 20);
+  ctx.fillStyle = "#cfd";
+  ctx.font = "bold 48px 'Libertinus Mono', monospace";
+  ctx.fillText("SIGNAL LOST", W / 2, H / 2 - 30);
   ctx.fillStyle = "#ccd";
   ctx.font = "20px 'Libertinus Mono', monospace";
-  ctx.fillText(`Score: ${score}`, W / 2, H / 2 + 20);
-  ctx.fillText(`Click to return to menu`, W / 2, H / 2 + 50);
+  ctx.fillText("Score: " + score, W / 2, H / 2 + 5);
+  ctx.fillStyle = "#9ab";
+  ctx.font = "16px 'Libertinus Mono', monospace";
+  ctx.fillText("loading scores…", W / 2, H / 2 + 40);
   ctx.textAlign = "left";
+}
+
+// Reference panel on the left of the entry scene: all 26 letters paired
+// with their morse codes, so the player can look up a letter while typing.
+function drawAlphabetPanel() {
+  const panelX = 60, panelY = 150, panelW = 260, panelH = 410;
+  ctx.fillStyle = "rgba(30,50,60,0.35)";
+  ctx.fillRect(panelX, panelY, panelW, panelH);
+  ctx.strokeStyle = "#4a7a9a";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(panelX + 0.5, panelY + 0.5, panelW, panelH);
+
+  ctx.fillStyle = "#cfd";
+  ctx.font = "bold 18px 'Libertinus Mono', monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("ALPHABET", panelX + panelW / 2, panelY + 28);
+
+  const cols = 2;
+  const rows = 13;
+  const cellW = panelW / cols;
+  const cellH = 26;
+  ctx.font = "15px 'Libertinus Mono', monospace";
+  ctx.textAlign = "left";
+  for (let i = 0; i < MORSE_ORDER.length; i++) {
+    const col = Math.floor(i / rows);
+    const row = i % rows;
+    const x = panelX + col * cellW + 16;
+    const y = panelY + 54 + row * cellH + 10;
+    const ch = MORSE_ORDER[i];
+    ctx.fillStyle = "#bfe0ff";
+    ctx.fillText(ch, x, y);
+    drawMorse(ctx, MORSE[ch], x + 20, y - 5, 13, "#8ab0d4");
+  }
+}
+
+function drawHighScoreEntry() {
+  drawBackdrop(W / 2, H / 2);
+
+  // Header
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#cfd";
+  ctx.font = "bold 40px 'Libertinus Mono', monospace";
+  ctx.fillText("SIGNAL LOST", W / 2, 60);
+  ctx.fillStyle = "#ccd";
+  ctx.font = "20px 'Libertinus Mono', monospace";
+  ctx.fillText("Score: " + score, W / 2, 92);
+
+  ctx.fillStyle = "#ffd34a";
+  ctx.font = "bold 22px 'Libertinus Mono', monospace";
+  ctx.fillText("NEW HIGH SCORE", W / 2, 128);
+
+  drawAlphabetPanel();
+
+  // Entry panel (right half)
+  const panelCX = 700;
+  const boxSize = 60, boxGap = 14;
+  const totalBoxW = boxSize * 3 + boxGap * 2;
+  const startX = panelCX - totalBoxW / 2;
+  const boxY = 240;
+
+  ctx.fillStyle = "#9ab";
+  ctx.font = "14px 'Libertinus Mono', monospace";
+  ctx.textAlign = "left";
+  ctx.fillText("enter your initials in morse", startX, 215);
+  ctx.textAlign = "center";
+  for (let i = 0; i < 3; i++) {
+    const x = startX + i * (boxSize + boxGap);
+    const current = i === entryName.length && entryName.length < 3;
+    ctx.fillStyle = "rgba(20,30,40,0.85)";
+    ctx.fillRect(x, boxY, boxSize, boxSize);
+    ctx.strokeStyle = current ? "#ffd34a" : "#4a7a9a";
+    ctx.lineWidth = current ? 2 : 1;
+    ctx.strokeRect(x + 0.5, boxY + 0.5, boxSize, boxSize);
+    if (i < entryName.length) {
+      ctx.fillStyle = "#cfd";
+      ctx.font = "bold 36px 'Libertinus Mono', monospace";
+      const m = ctx.measureText(entryName[i]);
+      const asc = m.actualBoundingBoxAscent;
+      const dsc = m.actualBoundingBoxDescent;
+      const letterY = boxY + boxSize / 2 + (asc - dsc) / 2;
+      ctx.fillText(entryName[i], x + boxSize / 2, letterY);
+    }
+  }
+
+  // Current morse being typed, under the boxes.
+  const morse = inputMorse || lastLetterMorse;
+  if (morse) {
+    const size = 22;
+    const w = measureMorse(morse, size);
+    drawMorse(ctx, morse, panelCX - w / 2, boxY + boxSize + 22, size,
+              "rgba(255,220,120,0.95)");
+  }
+
+  drawButtons();
+  ctx.textAlign = "left";
+}
+
+function drawLeaderboardScene() {
+  drawBackdrop(W / 2, H / 2);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#cfd";
+  ctx.font = "bold 40px 'Libertinus Mono', monospace";
+  ctx.fillText("SIGNAL LOST", W / 2, 60);
+  ctx.fillStyle = "#ccd";
+  ctx.font = "20px 'Libertinus Mono', monospace";
+  ctx.fillText("Score: " + score, W / 2, 92);
+
+  const boxX = W / 2 - 220, boxY = 130, boxW = 440, boxH = 400;
+  ctx.fillStyle = "rgba(30,50,60,0.35)";
+  ctx.fillRect(boxX, boxY, boxW, boxH);
+  ctx.strokeStyle = "#4a7a9a";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW, boxH);
+
+  ctx.fillStyle = "#cfd";
+  ctx.font = "bold 24px 'Libertinus Mono', monospace";
+  ctx.fillText("HIGH SCORES", W / 2, boxY + 34);
+
+  ctx.font = "20px 'Libertinus Mono', monospace";
+  if (!topScores) {
+    ctx.fillStyle = "#9ab";
+    ctx.fillText("loading…", W / 2, boxY + boxH / 2);
+  } else if (topScores.length === 0) {
+    ctx.fillStyle = "#9ab";
+    ctx.fillText("no scores yet", W / 2, boxY + boxH / 2);
+  } else {
+    ctx.textAlign = "left";
+    for (let i = 0; i < topScores.length; i++) {
+      const row = topScores[i];
+      const y = boxY + 72 + i * 30;
+      const mine = nameSubmitted && row.name === entryName && row.score === score;
+      ctx.fillStyle = mine ? "#ffd34a" : "#9ab";
+      ctx.fillText(String(i + 1).padStart(2, " ") + ".", boxX + 30, y);
+      ctx.fillStyle = mine ? "#ffd34a" : "#cfd";
+      ctx.fillText(row.name, boxX + 100, y);
+      ctx.textAlign = "right";
+      ctx.fillText(String(row.score), boxX + boxW - 30, y);
+      ctx.textAlign = "left";
+    }
+  }
+
+  ctx.textAlign = "left";
+  drawButtons();
 }

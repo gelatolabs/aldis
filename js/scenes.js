@@ -34,7 +34,9 @@ function currentButtons() {
     return [
       { label: "PLAY",    x: cx - 120, y: 312, w: 240, h: 56,
         action: () => enterScene(SCENE.settings) },
-      { label: "CREDITS", x: cx - 120, y: 382, w: 240, h: 56,
+      { label: "SCORES",  x: cx - 120, y: 382, w: 240, h: 56,
+        action: () => { fetchTopScores(); enterScene(SCENE.scores); } },
+      { label: "CREDITS", x: cx - 120, y: 452, w: 240, h: 56,
         action: () => enterScene(SCENE.credits) },
     ];
   }
@@ -44,9 +46,33 @@ function currentButtons() {
         action: () => { resetGame(); enterScene(SCENE.game); } },
     ];
   }
-  if (currentScene === SCENE.credits) {
+  if (currentScene === SCENE.credits || currentScene === SCENE.scores
+      || currentScene === SCENE.leaderboard) {
     return [
-      { label: "BACK", x: cx - 60, y: H - 70, w: 120, h: 40,
+      { label: "MENU", x: cx - 60, y: H - 70, w: 120, h: 40,
+        action: () => enterScene(SCENE.menu) },
+    ];
+  }
+  if (currentScene === SCENE.highScoreEntry) {
+    const boxSize = 60, boxGap = 14;
+    const totalBoxW = boxSize * 3 + boxGap * 2;
+    const panelCX = 700;
+    const startX = panelCX - totalBoxW / 2;
+    const boxY = 240;
+    return [
+      { label: "<",
+        x: startX + totalBoxW + boxGap, y: boxY, w: boxSize, h: boxSize,
+        disabled: entryName.length === 0,
+        action: () => { if (entryName.length > 0) entryName = entryName.slice(0, -1); } },
+      { label: "SUBMIT",
+        x: panelCX - 100, y: boxY + boxSize + 40, w: 200, h: 44,
+        disabled: entryName.length !== 3,
+        action: () => {
+          submitTopScore();
+          enterScene(SCENE.leaderboard);
+        } },
+      { label: "MENU",
+        x: cx - 60, y: H - 70, w: 120, h: 40,
         action: () => enterScene(SCENE.menu) },
     ];
   }

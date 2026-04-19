@@ -10,7 +10,8 @@ function frame(now) {
   if (currentScene === SCENE.splash && sceneTime >= SPLASH_TOTAL) {
     enterScene(SCENE.menu);
   }
-  if (currentScene === SCENE.settings || currentScene === SCENE.game) {
+  if (currentScene === SCENE.settings || currentScene === SCENE.game
+      || currentScene === SCENE.highScoreEntry) {
     if (lamp.beamTimer > 0) lamp.beamTimer -= dt;
     // Hold the beam at full intensity while the user is still pressing; the
     // decay above only takes effect once they release.
@@ -19,8 +20,16 @@ function frame(now) {
       if (lamp.beamTimer < maxDur) lamp.beamTimer = maxDur;
     }
   }
-  if (currentScene === SCENE.game) updatePressInput();
+  if (currentScene === SCENE.game || currentScene === SCENE.highScoreEntry) {
+    updatePressInput();
+  }
   if (currentScene === SCENE.game && !gameOver) update(dt);
+  if (currentScene === SCENE.highScoreEntry) updateNameEntry(dt);
+
+  // Once the game ends and scores finish loading, branch to the right scene.
+  if (currentScene === SCENE.game && gameOver && topScores !== null) {
+    enterScene(qualifiesForTop10() ? SCENE.highScoreEntry : SCENE.leaderboard);
+  }
 
   render();
   requestAnimationFrame(frame);
@@ -54,7 +63,10 @@ function update(dt) {
       if (e.x < 40) {
         e.alive = false;
         player.missed += 1;
-        if (player.missed >= player.maxHealth) gameOver = true;
+        if (player.missed >= player.maxHealth) {
+          gameOver = true;
+          fetchTopScores();
+        }
       }
     } else if (e.deathAnim > 0) {
       e.deathAnim -= dt;
@@ -145,9 +157,27 @@ function updateRadar(dt) {
   }
 }
 
+function updateNameEntry(dt) {
+  if (inputResetTimer > 0) {
+    inputResetTimer -= dt;
+    if (inputResetTimer <= 0) {
+      if (inNameEntry()) {
+        const letter = MORSE_TO_CHAR[inputMorse];
+        if (letter && entryName.length < 3) entryName += letter;
+      }
+      inputMorse = "";
+    }
+  }
+  if (lastLetterTimer > 0) {
+    lastLetterTimer -= dt;
+    if (lastLetterTimer <= 0) lastLetterMorse = "";
+  }
+}
+
 function resetGame() {
   enemies = [];
   score = 0;
+  resetNameEntry();
   player.missed = 0;
   inputMorse = "";
   inputResetTimer = 0;
@@ -161,6 +191,17 @@ function resetGame() {
   lamp.held = false;
   prevLampAngle = lamp.angle;
 }
+
+// Dev helper: force a game-over from the browser console, e.g. `endGame()`
+// or `endGame(12345)` to set a specific score first.
+window.endGame = function (atScore) {
+  if (currentScene !== SCENE.game) return "not in game";
+  if (typeof atScore === "number") score = atScore;
+  player.missed = player.maxHealth;
+  gameOver = true;
+  fetchTopScores();
+  return "ended with score " + score;
+};
 
 // Kick off the loop only after the font is ready, so the first rendered
 // frame already has Libertinus Mono glyphs (avoids an FOUT on the canvas).

@@ -60,8 +60,11 @@ const SCENE = {
   splash: "splash",
   menu: "menu",
   settings: "settings",
+  scores: "scores",
   credits: "credits",
   game: "game",
+  highScoreEntry: "highScoreEntry",
+  leaderboard: "leaderboard",
 };
 let currentScene = SCENE.splash;
 let sceneTime = 0;
@@ -76,34 +79,28 @@ const settings = {
 // Press → morse translation: hold duration threshold between dot and dash.
 const DASH_MS = 180;
 
-// ----- Persist user settings in a cookie -----
-const SETTINGS_COOKIE = "signallamp";
+// ----- Persist user settings in localStorage -----
+const SETTINGS_KEY = "aldis_settings";
 
 function loadSettings() {
-  const parts = document.cookie ? document.cookie.split(";") : [];
-  for (const part of parts) {
-    const [k, ...rest] = part.trim().split("=");
-    if (k !== SETTINGS_COOKIE) continue;
-    try {
-      const data = JSON.parse(decodeURIComponent(rest.join("=")));
-      if (typeof data.base === "number")     settings.base = data.base;
-      if (typeof data.accelMax === "number") settings.accelMax = data.accelMax;
-      if (typeof data.volume === "number")   settings.volume = data.volume;
-    } catch (e) { /* ignore malformed */ }
-    return;
-  }
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (typeof data.base === "number")     settings.base = data.base;
+    if (typeof data.accelMax === "number") settings.accelMax = data.accelMax;
+    if (typeof data.volume === "number")   settings.volume = data.volume;
+  } catch (e) { /* ignore */ }
 }
 
 function saveSettings() {
-  const data = JSON.stringify({
-    base: settings.base,
-    accelMax: settings.accelMax,
-    volume: settings.volume,
-  });
-  const maxAge = 60 * 60 * 24 * 365;  // 1 year
-  document.cookie =
-    SETTINGS_COOKIE + "=" + encodeURIComponent(data)
-    + "; max-age=" + maxAge + "; path=/; SameSite=Lax";
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({
+      base: settings.base,
+      accelMax: settings.accelMax,
+      volume: settings.volume,
+    }));
+  } catch (e) { /* quota or privacy mode — ignore */ }
 }
 
 loadSettings();
