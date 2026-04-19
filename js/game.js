@@ -162,4 +162,14 @@ function resetGame() {
   prevLampAngle = lamp.angle;
 }
 
-requestAnimationFrame(frame);
+// Kick off the loop only after the font is ready, so the first rendered
+// frame already has Libertinus Mono glyphs (avoids an FOUT on the canvas).
+function startLoop() { requestAnimationFrame(frame); }
+if (document.fonts && document.fonts.load) {
+  Promise.all([
+    document.fonts.load("14px 'Libertinus Mono'"),
+    document.fonts.load("bold 14px 'Libertinus Mono'"),
+  ]).catch(() => {}).finally(startLoop);
+} else {
+  startLoop();
+}

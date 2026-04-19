@@ -143,11 +143,11 @@ function drawMenu() {
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#cfd";
-  ctx.font = "bold 72px 'Courier New', monospace";
+  ctx.font = "bold 72px 'Libertinus Mono', monospace";
   ctx.fillText("ALDIS", W / 2, 180);
 
   ctx.fillStyle = "#7a9";
-  ctx.font = "16px 'Courier New', monospace";
+  ctx.font = "16px 'Libertinus Mono', monospace";
   ctx.fillText(".- .-.. -.. .. ...", W / 2, 220);
 
   drawButtons();
@@ -162,11 +162,11 @@ function drawSettings() {
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#cfd";
-  ctx.font = "bold 36px 'Courier New', monospace";
+  ctx.font = "bold 36px 'Libertinus Mono', monospace";
   ctx.fillText("OPTIONS", W / 2, 110);
 
   ctx.fillStyle = "#9ab";
-  ctx.font = "13px 'Courier New', monospace";
+  ctx.font = "13px 'Libertinus Mono', monospace";
   ctx.fillText("scroll to preview", W / 2, 138);
   ctx.textAlign = "left";
 
@@ -186,7 +186,7 @@ function drawSettings() {
     "- To use an encoder, bind it to scroll down (clockwise) and up (counter-clockwise).",
   ];
   ctx.fillStyle = "#7a9";
-  ctx.font = "12px 'Courier New', monospace";
+  ctx.font = "13px 'Libertinus Mono', monospace";
   ctx.textAlign = "left";
   let maxW = 0;
   for (const line of lines) {
@@ -202,7 +202,7 @@ function drawSettings() {
 
 function drawSlider(s) {
   ctx.fillStyle = "#cfd";
-  ctx.font = "14px 'Courier New', monospace";
+  ctx.font = "14px 'Libertinus Mono', monospace";
   ctx.textAlign = "left";
   ctx.fillText(s.label, s.x, s.y - 10);
   ctx.textAlign = "right";
@@ -236,10 +236,10 @@ function drawCredits() {
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#cfd";
-  ctx.font = "bold 42px 'Courier New', monospace";
+  ctx.font = "bold 42px 'Libertinus Mono', monospace";
   ctx.fillText("CREDITS", W / 2, 120);
 
-  ctx.font = "18px 'Courier New', monospace";
+  ctx.font = "18px 'Libertinus Mono', monospace";
   ctx.fillStyle = "#bcd";
   let y = 200;
   for (const line of CREDITS_LINES) {
@@ -262,7 +262,7 @@ function drawButtons() {
     ctx.strokeRect(btn.x + 0.5, btn.y + 0.5, btn.w, btn.h);
 
     ctx.fillStyle = "#cfd";
-    ctx.font = "bold 20px 'Courier New', monospace";
+    ctx.font = "bold 20px 'Libertinus Mono', monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
@@ -280,9 +280,9 @@ function drawHealth() {
   const y = lamp.y - barH / 2;
 
   ctx.fillStyle = "#9bd";
-  ctx.font = "11px 'Courier New', monospace";
+  ctx.font = "11px 'Libertinus Mono', monospace";
   ctx.textAlign = "center";
-  ctx.fillText("HP", x + barW / 2, y - 8);
+  ctx.fillText("HP", x + barW / 2 + 1, y - 8);
   ctx.textAlign = "left";
 
   ctx.fillStyle = "#1a0f14";
@@ -543,7 +543,7 @@ function enemyWordAlpha(e) {
 }
 
 function drawEnemyWords() {
-  ctx.font = "bold 22px 'Courier New', monospace";
+  ctx.font = "bold 22px 'Libertinus Mono', monospace";
   const bi = beamIntensity();
   const lens = bi > 0 ? beamLensPos() : null;
   for (const e of enemies) {
@@ -594,7 +594,7 @@ function drawDeathAnims() {
       const ty = ENEMY_TYPES[e.typeKey];
       ctx.save();
       ctx.globalAlpha = t;
-      ctx.font = "bold 22px 'Courier New', monospace";
+      ctx.font = "bold 22px 'Libertinus Mono', monospace";
       ctx.textAlign = "center";
       // Float upward slightly over the anim
       const y = e.y - ty.h / 2 - 10 - (1 - t) * 20;
@@ -687,7 +687,7 @@ function drawInputBuffer() {
   if (!target) return;
   const t = ENEMY_TYPES[target.typeKey];
   const sy = target.y - t.h / 2;
-  ctx.font = "bold 24px 'Courier New', monospace";
+  ctx.font = "bold 24px 'Libertinus Mono', monospace";
   ctx.fillStyle = "rgba(255,220,120,0.95)";
   ctx.textAlign = "center";
   ctx.fillText(display, target.x, sy - 42);
@@ -695,7 +695,7 @@ function drawInputBuffer() {
 }
 
 function drawHUD() {
-  ctx.font = "bold 20px 'Courier New', monospace";
+  ctx.font = "bold 20px 'Libertinus Mono', monospace";
   ctx.fillStyle = "#cfd";
   ctx.textAlign = "left";
   ctx.fillText("SCORE: " + score, 16, 28);
@@ -721,7 +721,7 @@ function drawMorseChart() {
   ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW, boxH);
 
   ctx.globalAlpha = 0.6;
-  ctx.font = "bold 20px 'Courier New', monospace";
+  ctx.font = "bold 20px 'Libertinus Mono', monospace";
   for (let i = 0; i < MORSE_ORDER.length; i++) {
     const col = Math.floor(i / rows);
     const row = i % rows;
@@ -741,10 +741,10 @@ function drawGameOver() {
   ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = "#cfd";
   ctx.textAlign = "center";
-  ctx.font = "bold 56px 'Courier New', monospace";
+  ctx.font = "bold 56px 'Libertinus Mono', monospace";
   ctx.fillText("SIGNAL LOST", W / 2, H / 2 - 20);
   ctx.fillStyle = "#ccd";
-  ctx.font = "20px 'Courier New', monospace";
+  ctx.font = "20px 'Libertinus Mono', monospace";
   ctx.fillText(`Score: ${score}`, W / 2, H / 2 + 20);
   ctx.fillText(`Click to return to menu`, W / 2, H / 2 + 50);
   ctx.textAlign = "left";
