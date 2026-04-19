@@ -52,7 +52,7 @@ function currentButtons() {
           action: () => { paused = false; enterScene(SCENE.menu); } },
         { label: "RESUME",
           x: cx +  20, y: 560, w: 140, h: 44,
-          action: () => { paused = false; enterScene(SCENE.game); } },
+          action: () => { paused = false; enterScene(pausedFrom); } },
       ];
     }
     return [

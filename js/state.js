@@ -86,8 +86,10 @@ const settings = {
 };
 
 // Set true while pausing the game from the Options screen; resumes instead of
-// restarting when the user clicks the primary button.
+// restarting when the user clicks the primary button. `pausedFrom` records
+// which scene the player paused out of so RESUME returns there.
 let paused = false;
+let pausedFrom = SCENE.game;
 
 // Press → morse translation: hold duration threshold between dot and dash.
 const DASH_MS = 180;

@@ -187,12 +187,14 @@ window.addEventListener("keydown", (e) => {
   }
   // P pauses the running game and toggles the options screen.
   if (e.code === "KeyP" && !e.repeat) {
-    if (currentScene === SCENE.game && !gameOver) {
+    if ((currentScene === SCENE.game && !gameOver)
+        || currentScene === SCENE.tutorial) {
       paused = true;
+      pausedFrom = currentScene;
       enterScene(SCENE.settings);
     } else if (currentScene === SCENE.settings && paused) {
       paused = false;
-      enterScene(SCENE.game);
+      enterScene(pausedFrom);
     }
   }
 });
