@@ -47,9 +47,9 @@ const beamGlowCanvas = buildMaskCanvas(255, 245, 200, (along, perp) => {
   const twoSigmaSq = 2 * (bw * 0.55) * (bw * 0.55);
   const perpFall = Math.exp(-(perp * perp) / twoSigmaSq);
   const r2 = along * along + perp * perp;
-  const r0sq = 700 * 700;
+  const r0sq = 750 * 750;
   const alongFall = r0sq / (r0sq + r2);
-  return Math.min(1, perpFall * alongFall * 1.2);
+  return perpFall * alongFall * 0.7;
 });
 
 const beamSpriteCanvas = buildMaskCanvas(255, 255, 255, (along, perp) => {
@@ -118,6 +118,127 @@ function render() {
     case SCENE.game:           drawGame();            break;
     case SCENE.highScoreEntry: drawHighScoreEntry();  break;
     case SCENE.leaderboard:    drawLeaderboardScene();break;
+  }
+  drawCrtOverlay();
+}
+
+// ---- CRT post-process ----
+//
+// Applied on top of every frame as a stack of cheap passes:
+//   1. Bloom      — blurred copy of the current canvas composited with
+//                   "lighter", so bright phosphors bleed into neighbours.
+//   2. Chromatic  — a second blurred, hue-shifted copy offset sideways for
+//      aberration   a faint RGB fringe.
+//   3. Scanlines  — faint horizontal dark lines, every other row.
+//   4. Phosphor   — animated grain (pre-rendered noise tiles cycled
+//      grain        per-frame) to simulate granular phosphor texture.
+//   5. Vignette   — radial darkening at the corners.
+//   6. Flicker    — tiny time-varying brightness wobble.
+const crtBuffer = document.createElement("canvas");
+crtBuffer.width = W;
+crtBuffer.height = H;
+const crtBufferCtx = crtBuffer.getContext("2d");
+
+// Faint horizontal scanline tile — single dark row every two rows.
+const crtScanlines = document.createElement("canvas");
+crtScanlines.width = 1;
+crtScanlines.height = 2;
+(function () {
+  const c = crtScanlines.getContext("2d");
+  c.fillStyle = "rgba(0,0,0,0.14)";
+  c.fillRect(0, 0, 1, 1);
+})();
+let crtScanlinePattern = null;
+
+// Noise tiles
+const CRT_GRAIN_TILE_SIZE = 128;
+const CRT_GRAIN_TILE_COUNT = 6;
+const crtGrainTiles = [];
+for (let f = 0; f < CRT_GRAIN_TILE_COUNT; f++) {
+  const c = document.createElement("canvas");
+  c.width = CRT_GRAIN_TILE_SIZE;
+  c.height = CRT_GRAIN_TILE_SIZE;
+  const cc = c.getContext("2d");
+  const img = cc.createImageData(CRT_GRAIN_TILE_SIZE, CRT_GRAIN_TILE_SIZE);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = 128 + Math.floor((Math.random() - 0.5) * 140);
+    d[i] = v; d[i + 1] = v; d[i + 2] = v; d[i + 3] = 255;
+  }
+  cc.putImageData(img, 0, 0);
+  crtGrainTiles.push(c);
+}
+let crtGrainPatterns = null;
+
+const crtVignette = document.createElement("canvas");
+crtVignette.width = W;
+crtVignette.height = H;
+(function () {
+  const c = crtVignette.getContext("2d");
+  const cx = W / 2, cy = H / 2;
+  const r = Math.hypot(cx, cy);
+  const g = c.createRadialGradient(cx, cy, r * 0.55, cx, cy, r * 1.05);
+  g.addColorStop(0,   "rgba(0,0,0,0)");
+  g.addColorStop(0.7, "rgba(0,0,0,0.30)");
+  g.addColorStop(1,   "rgba(0,0,0,0.85)");
+  c.fillStyle = g;
+  c.fillRect(0, 0, W, H);
+})();
+
+function drawCrtOverlay() {
+  // Bloom
+  crtBufferCtx.clearRect(0, 0, W, H);
+  crtBufferCtx.drawImage(canvas, 0, 0);
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha = 0.3;
+  ctx.filter = "blur(3px)";
+  ctx.drawImage(crtBuffer, 0, 0);
+  ctx.filter = "none";
+  ctx.restore();
+
+  // Chromatic aberration
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha = 0.18;
+  ctx.filter = "blur(2px) hue-rotate(20deg)";
+  ctx.drawImage(crtBuffer, 2, 0);
+  ctx.filter = "none";
+  ctx.restore();
+
+  // Faint horizontal scanlines
+  if (!crtScanlinePattern) {
+    crtScanlinePattern = ctx.createPattern(crtScanlines, "repeat");
+  }
+  ctx.save();
+  ctx.fillStyle = crtScanlinePattern;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  // Phosphor grain
+  if (!crtGrainPatterns) {
+    crtGrainPatterns = crtGrainTiles.map(t => ctx.createPattern(t, "repeat"));
+  }
+  const grainIdx = Math.floor(animTime / 55) % crtGrainPatterns.length;
+  ctx.save();
+  ctx.globalCompositeOperation = "overlay";
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = crtGrainPatterns[grainIdx];
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  // Vignette
+  ctx.drawImage(crtVignette, 0, 0);
+
+  // Flicker
+  const flicker = 0.04 + Math.sin(animTime * 0.006) * 0.05
+                       + Math.sin(animTime * 0.04)  * 0.03;
+  if (flicker > 0) {
+    ctx.save();
+    ctx.globalCompositeOperation = "overlay";
+    ctx.fillStyle = "rgba(255,255,255," + flicker.toFixed(3) + ")";
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
   }
 }
 
