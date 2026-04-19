@@ -324,13 +324,13 @@ function drawMenu() {
   ctx.textAlign = "center";
   ctx.fillStyle = "#cfd";
   ctx.font = "bold 72px 'Libertinus Mono', monospace";
-  ctx.fillText("ALDIS", W / 2 + 3, 185);
+  ctx.fillText("ALDIS", W / 2 + 3, 136);
 
   {
     const morse = ".- .-.. -.. .. ...";
     const size = 18;
     const w = measureMorse(morse, size);
-    drawMorse(ctx, morse, W / 2 - w / 2, 210, size, "#7a9");
+    drawMorse(ctx, morse, W / 2 - w / 2, 161, size, "#7a9");
   }
 
   drawButtons();

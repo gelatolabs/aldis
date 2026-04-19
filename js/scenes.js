@@ -30,17 +30,36 @@ function enterScene(s) {
 
 // ----- Buttons -----
 
+function startPendingGame() {
+  if (pendingStart === "story") {
+    enterStory();
+  } else if (tutorialSeen()) {
+    resetGame();
+    enterScene(SCENE.game);
+  } else {
+    enterTutorial();
+  }
+}
+
+function beginFromMenu(mode) {
+  pendingStart = mode;
+  if (optionsSeen()) startPendingGame();
+  else enterScene(SCENE.settings);
+}
+
 function currentButtons() {
   const cx = W / 2;
   if (currentScene === SCENE.menu) {
     return [
-      { label: "SURVIVAL", x: cx - 120, y: 292, w: 240, h: 56,
-        action: () => { pendingStart = "survival"; enterScene(SCENE.settings); } },
-      { label: "STORY",    x: cx - 120, y: 362, w: 240, h: 56,
-        action: () => { pendingStart = "story"; enterScene(SCENE.settings); } },
-      { label: "SCORES",   x: cx - 120, y: 432, w: 240, h: 56,
+      { label: "STORY",    x: cx - 120, y: 228, w: 240, h: 56,
+        action: () => beginFromMenu("story") },
+      { label: "SURVIVAL", x: cx - 120, y: 298, w: 240, h: 56,
+        action: () => beginFromMenu("survival") },
+      { label: "SCORES",   x: cx - 120, y: 368, w: 240, h: 56,
         action: () => { fetchTopScores(); enterScene(SCENE.scores); } },
-      { label: "CREDITS",  x: cx - 120, y: 502, w: 240, h: 56,
+      { label: "OPTIONS",  x: cx - 120, y: 438, w: 240, h: 56,
+        action: () => { pendingStart = null; enterScene(SCENE.settings); } },
+      { label: "CREDITS",  x: cx - 120, y: 508, w: 240, h: 56,
         action: () => enterScene(SCENE.credits) },
     ];
   }
@@ -55,22 +74,20 @@ function currentButtons() {
           action: () => { paused = false; enterScene(pausedFrom); } },
       ];
     }
+    if (!pendingStart) {
+      return [
+        { label: "BACK", variant: "danger",
+          x: cx - 60, y: 560, w: 140, h: 44,
+          action: () => enterScene(SCENE.menu) },
+      ];
+    }
     return [
       { label: "BACK", variant: "danger",
         x: cx - 160, y: 560, w: 140, h: 44,
         action: () => enterScene(SCENE.menu) },
       { label: "START",
         x: cx +  20, y: 560, w: 140, h: 44,
-        action: () => {
-          if (pendingStart === "story") {
-            enterStory();
-          } else if (tutorialSeen()) {
-            resetGame();
-            enterScene(SCENE.game);
-          } else {
-            enterTutorial();
-          }
-        } },
+        action: () => { markOptionsSeen(); startPendingGame(); } },
     ];
   }
   if (currentScene === SCENE.credits || currentScene === SCENE.scores

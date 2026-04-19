@@ -98,6 +98,16 @@ const DASH_MS = 180;
 
 // ----- Persist user settings in localStorage -----
 const SETTINGS_KEY = "aldis_settings";
+const OPTIONS_SEEN_KEY = "aldis_options_seen";
+
+function optionsSeen() {
+  try { return localStorage.getItem(OPTIONS_SEEN_KEY) === "1"; }
+  catch (e) { return false; }
+}
+
+function markOptionsSeen() {
+  try { localStorage.setItem(OPTIONS_SEEN_KEY, "1"); } catch (e) { /* ignore */ }
+}
 
 function loadSettings() {
   try {
