@@ -62,6 +62,7 @@ const SCENE = {
   settings: "settings",
   scores: "scores",
   credits: "credits",
+  tutorial: "tutorial",
   game: "game",
   highScoreEntry: "highScoreEntry",
   leaderboard: "leaderboard",

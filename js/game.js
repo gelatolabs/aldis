@@ -11,7 +11,8 @@ function frame(now) {
     enterScene(SCENE.menu);
   }
   if (currentScene === SCENE.settings || currentScene === SCENE.game
-      || currentScene === SCENE.highScoreEntry) {
+      || currentScene === SCENE.highScoreEntry
+      || currentScene === SCENE.tutorial) {
     if (lamp.beamTimer > 0) lamp.beamTimer -= dt;
     // Hold the beam at full intensity while the user is still pressing; the
     // decay above only takes effect once they release.
@@ -20,10 +21,13 @@ function frame(now) {
       if (lamp.beamTimer < maxDur) lamp.beamTimer = maxDur;
     }
   }
-  if (currentScene === SCENE.game || currentScene === SCENE.highScoreEntry) {
+  if (currentScene === SCENE.game || currentScene === SCENE.highScoreEntry
+      || currentScene === SCENE.tutorial) {
     updatePressInput();
   }
   if (currentScene === SCENE.game && !gameOver) update(dt);
+  if (currentScene === SCENE.game) updateTutorialFadeIn(dt);
+  if (currentScene === SCENE.tutorial) updateTutorial(dt);
   if (currentScene === SCENE.highScoreEntry) updateNameEntry(dt);
 
   // Once the game ends and scores finish loading, branch to the right scene.

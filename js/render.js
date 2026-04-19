@@ -108,6 +108,7 @@ function render() {
     case SCENE.settings:       drawSettings();        break;
     case SCENE.scores:         drawScoresScene();     break;
     case SCENE.credits:        drawCredits();         break;
+    case SCENE.tutorial:       drawTutorial();        break;
     case SCENE.game:           drawGame();            break;
     case SCENE.highScoreEntry: drawHighScoreEntry();  break;
     case SCENE.leaderboard:    drawLeaderboardScene();break;
@@ -169,6 +170,7 @@ function drawGame() {
   drawHUD();
   drawHealth();
   if (gameOver) drawGameOver();
+  if (currentScene === SCENE.game) drawTutorialFade();
 }
 
 // ---- Splash ----

@@ -59,7 +59,14 @@ function currentButtons() {
         action: () => enterScene(SCENE.menu) },
       { label: "START",
         x: cx +  20, y: 560, w: 140, h: 44,
-        action: () => { resetGame(); enterScene(SCENE.game); } },
+        action: () => {
+          if (tutorialSeen()) {
+            resetGame();
+            enterScene(SCENE.game);
+          } else {
+            enterTutorial();
+          }
+        } },
     ];
   }
   if (currentScene === SCENE.credits || currentScene === SCENE.scores

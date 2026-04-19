@@ -17,7 +17,10 @@ let scrollSpeed = 0;
 
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
-  if (currentScene !== SCENE.game && currentScene !== SCENE.settings) return;
+  if (currentScene !== SCENE.game
+      && currentScene !== SCENE.settings
+      && currentScene !== SCENE.tutorial) return;
+  if (tutorialScrollLocked()) return;
 
   const now = performance.now();
   const dt = Math.max(1, now - lastScrollAt);
@@ -124,7 +127,7 @@ canvas.addEventListener("mousedown", (e) => {
     if (buttonHit(btn, x, y)) { btn.action(); return; }
   }
 
-  if (currentScene === SCENE.game) {
+  if (currentScene === SCENE.game || currentScene === SCENE.tutorial) {
     pressBegin("mouse:" + e.button);
   }
 });
@@ -169,7 +172,8 @@ window.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
     const inGame  = currentScene === SCENE.game && !gameOver;
     const inEntry = inNameEntry();
-    if (!inGame && !inEntry) return;
+    const inTut   = currentScene === SCENE.tutorial;
+    if (!inGame && !inEntry && !inTut) return;
     if (e.repeat) return;
     e.preventDefault();
     pressBegin("key:Space");
@@ -197,6 +201,8 @@ function inputSignal(kind) {
   lastLetterTimer = 0;
   inputMorse += (kind === "dot" ? "." : "-");
   inputResetTimer = LETTER_TIMEOUT_MS;
+
+  if (currentScene === SCENE.tutorial) tutorialOnSignal(kind);
 
   // During the game-over name entry the buffer is committed on idle timeout
   // (see updateNameEntry) rather than matched against an enemy.
