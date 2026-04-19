@@ -57,6 +57,50 @@ const beamSpriteCanvas = buildMaskCanvas(255, 255, 255, (along, perp) => {
   return Math.exp(-(u * u * u));
 });
 
+// Render a morse string of dot and dash shapes.
+function drawMorse(c, morse, x, y, size, color) {
+  const dotR = size * 0.18;
+  const dashW = size * 0.7;
+  const dashH = size * 0.24;
+  const gap = size * 0.25;
+  c.save();
+  c.fillStyle = color;
+  let cx = x;
+  let prev = null;
+  for (const ch of morse) {
+    if (ch === " ") { cx += size; prev = " "; continue; }
+    if (prev === "." || prev === "-") cx += gap;
+    if (ch === ".") {
+      c.beginPath();
+      c.arc(cx + dotR, y, dotR, 0, Math.PI * 2);
+      c.fill();
+      cx += dotR * 2;
+    } else if (ch === "-") {
+      c.fillRect(cx, y - dashH / 2, dashW, dashH);
+      cx += dashW;
+    }
+    prev = ch;
+  }
+  c.restore();
+  return cx - x;
+}
+
+function measureMorse(morse, size) {
+  const dotR = size * 0.18;
+  const dashW = size * 0.7;
+  const gap = size * 0.25;
+  let w = 0;
+  let prev = null;
+  for (const ch of morse) {
+    if (ch === " ") { w += size; prev = " "; continue; }
+    if (prev === "." || prev === "-") w += gap;
+    if (ch === ".") w += dotR * 2;
+    else if (ch === "-") w += dashW;
+    prev = ch;
+  }
+  return w;
+}
+
 function render() {
   switch (currentScene) {
     case SCENE.splash:   drawSplash();   break;
@@ -144,11 +188,14 @@ function drawMenu() {
   ctx.textAlign = "center";
   ctx.fillStyle = "#cfd";
   ctx.font = "bold 72px 'Libertinus Mono', monospace";
-  ctx.fillText("ALDIS", W / 2, 180);
+  ctx.fillText("ALDIS", W / 2 + 3, 215);
 
-  ctx.fillStyle = "#7a9";
-  ctx.font = "16px 'Libertinus Mono', monospace";
-  ctx.fillText(".- .-.. -.. .. ...", W / 2, 220);
+  {
+    const morse = ".- .-.. -.. .. ...";
+    const size = 18;
+    const w = measureMorse(morse, size);
+    drawMorse(ctx, morse, W / 2 - w / 2, 240, size, "#7a9");
+  }
 
   drawButtons();
 
@@ -687,11 +734,10 @@ function drawInputBuffer() {
   if (!target) return;
   const t = ENEMY_TYPES[target.typeKey];
   const sy = target.y - t.h / 2;
-  ctx.font = "bold 24px 'Libertinus Mono', monospace";
-  ctx.fillStyle = "rgba(255,220,120,0.95)";
-  ctx.textAlign = "center";
-  ctx.fillText(display, target.x, sy - 42);
-  ctx.textAlign = "left";
+  const size = 22;
+  const w = measureMorse(display, size);
+  drawMorse(ctx, display, target.x - w / 2, sy - 46, size,
+            "rgba(255,220,120,0.95)");
 }
 
 function drawHUD() {
@@ -730,8 +776,7 @@ function drawMorseChart() {
     const ch = MORSE_ORDER[i];
     ctx.fillStyle = "#bfe0ff";
     ctx.fillText(ch, x, y);
-    ctx.fillStyle = "#8ab0d4";
-    ctx.fillText(MORSE[ch], x + 24, y);
+    drawMorse(ctx, MORSE[ch], x + 24, y - 7, 18, "#8ab0d4");
   }
   ctx.restore();
 }

@@ -32,9 +32,9 @@ function currentButtons() {
   const cx = W / 2;
   if (currentScene === SCENE.menu) {
     return [
-      { label: "PLAY",    x: cx - 120, y: 340, w: 240, h: 56,
+      { label: "PLAY",    x: cx - 120, y: 312, w: 240, h: 56,
         action: () => enterScene(SCENE.settings) },
-      { label: "CREDITS", x: cx - 120, y: 410, w: 240, h: 56,
+      { label: "CREDITS", x: cx - 120, y: 382, w: 240, h: 56,
         action: () => enterScene(SCENE.credits) },
     ];
   }
