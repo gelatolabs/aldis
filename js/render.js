@@ -831,15 +831,32 @@ function radarPing(x, y, alpha) {
 function drawInputBuffer() {
   const display = inputMorse || lastLetterMorse;
   if (!display) return;
-  const target = enemies.find(e => e.alive && e.radarActive)
-              || enemies.find(e => e.deathAnim > 0);
+  let target = null;
+  let alpha = 0;
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    const a = enemyWordAlpha(e);
+    if (a > alpha) { alpha = a; target = e; }
+  }
+  if (!target) target = enemies.find(e => e.deathAnim > 0);
   if (!target) return;
+  if (target.deathAnim > 0 && alpha <= 0) alpha = 1;
+  if (alpha <= 0.02) return;
+  const bi = beamIntensity();
+  const lens = bi > 0 ? beamLensPos() : null;
+  const illum = lens ? enemyIllumination(target, lens.x, lens.y) * bi : 0;
+  const useFrozen = target.alive && !target.radarActive && illum <= 0.02;
+  const anchorX = useFrozen ? target.radarX : target.x;
+  const anchorY = useFrozen ? target.radarY : target.y;
   const t = ENEMY_TYPES[target.typeKey];
-  const sy = target.y - t.h / 2;
+  const sy = anchorY - t.h / 2;
   const size = 22;
   const w = measureMorse(display, size);
-  drawMorse(ctx, display, target.x - w / 2, sy - 46, size,
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  drawMorse(ctx, display, anchorX - w / 2, sy - 46, size,
             "rgba(255,220,120,0.95)");
+  ctx.restore();
 }
 
 function drawHUD() {
