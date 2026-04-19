@@ -30,10 +30,17 @@
   }
   canvas {
     background: #0a0a14;
-    image-rendering: pixelated;
     display: block;
     box-shadow: 0 0 30px #0af4;
     cursor: crosshair;
+    width: 1024px;
+    height: 640px;
+  }
+  canvas.scaled {
+    /* Scale the 1024x640 canvas to fit the viewport while keeping its 8:5
+       aspect ratio. min() picks whichever dimension hits the edge first. */
+    width: min(100vw, calc(100vh * 8 / 5));
+    height: min(100vh, calc(100vw * 5 / 8));
   }
 </style>
 </head>

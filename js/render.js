@@ -210,14 +210,28 @@ function drawMenu() {
 function drawSettings() {
   drawBackdrop(lamp.x, lamp.y);
 
+  // Title — "Options" by default, "Paused" while mid-game.
   ctx.textAlign = "center";
   ctx.fillStyle = "#cfd";
   ctx.font = "bold 36px 'Libertinus Mono', monospace";
-  ctx.fillText("OPTIONS", W / 2, 110);
+  ctx.fillText(paused ? "PAUSED" : "OPTIONS", W / 2, 60);
+
+  // Display row
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#cfd";
+  ctx.font = "14px 'Libertinus Mono', monospace";
+  ctx.fillText("DISPLAY", 240, DISPLAY_ROW_Y - 14);
+  drawDisplayButtons();
+
+  // Calibration subheading
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#cfd";
+  ctx.font = "bold 22px 'Libertinus Mono', monospace";
+  ctx.fillText("CALIBRATION", W / 2, 284);
 
   ctx.fillStyle = "#9ab";
   ctx.font = "13px 'Libertinus Mono', monospace";
-  ctx.fillText("scroll to preview", W / 2, 138);
+  ctx.fillText("scroll to preview", W / 2, 306);
   ctx.textAlign = "left";
 
   for (const s of sliders) drawSlider(s);
@@ -233,7 +247,7 @@ function drawSettings() {
     "- A smooth mouse wheel, rotary encoder (knob), or trackpad is recommended",
     "  and generally doesn't need acceleration.",
     "- Acceleration is advised for regular notched mouse scroll wheels.",
-    "- To use an encoder, bind it to scroll down (clockwise) and up (counter-clockwise).",
+    "- To use an encoder, bind it to scroll (clockwise = down).",
   ];
   ctx.fillStyle = "#7a9";
   ctx.font = "13px 'Libertinus Mono', monospace";
@@ -244,9 +258,28 @@ function drawSettings() {
     if (w > maxW) maxW = w;
   }
   const startX = (W - maxW) / 2;
-  const startY = H - 160;
+  const startY = H - 180;
   for (let i = 0; i < lines.length; i++) {
     ctx.fillText(lines[i], startX, startY + i * 18);
+  }
+}
+
+function drawDisplayButtons() {
+  for (const btn of displayButtons()) {
+    const selected = settings.display === btn.key;
+    ctx.fillStyle = selected ? "#2a5a3a" : "#15251c";
+    ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+    ctx.strokeStyle = selected ? "#7fff9f" : "#4a9a6e";
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeRect(btn.x + 0.5, btn.y + 0.5, btn.w, btn.h);
+
+    ctx.fillStyle = "#cfd";
+    ctx.font = "15px 'Libertinus Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(btn.label, btn.x + btn.w / 2, btn.y + btn.h / 2);
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
   }
 }
 
@@ -788,10 +821,13 @@ function drawInputBuffer() {
 }
 
 function drawHUD() {
+  ctx.textAlign = "left";
+  ctx.font = "13px 'Libertinus Mono', monospace";
+  ctx.fillStyle = "#9ab";
+  ctx.fillText("Press P to pause", 16, 22);
   ctx.font = "bold 20px 'Libertinus Mono', monospace";
   ctx.fillStyle = "#cfd";
-  ctx.textAlign = "left";
-  ctx.fillText("SCORE: " + score, 16, 28);
+  ctx.fillText("SCORE: " + score, 16, 46);
 }
 
 function drawMorseChart() {

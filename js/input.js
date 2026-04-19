@@ -99,6 +99,17 @@ canvas.addEventListener("mousedown", (e) => {
   }
 
   if (currentScene === SCENE.settings) {
+    for (const btn of displayButtons()) {
+      if (buttonHit(btn, x, y)) {
+        if (btn.key === "fullscreen" && settings.display !== "fullscreen") {
+          preFullscreenMode = settings.display;
+        }
+        settings.display = btn.key;
+        saveSettings();
+        applyDisplay();
+        return;
+      }
+    }
     for (const s of sliders) {
       if (sliderHit(s, x, y)) {
         dragSlider = s;
@@ -142,13 +153,25 @@ function volumeSliderSound(s) {
 window.addEventListener("blur", clearInputState);
 
 window.addEventListener("keydown", (e) => {
-  if (e.code !== "Space") return;
-  const inGame  = currentScene === SCENE.game && !gameOver;
-  const inEntry = inNameEntry();
-  if (!inGame && !inEntry) return;
-  if (e.repeat) return;
-  e.preventDefault();
-  pressBegin("key:Space");
+  if (e.code === "Space") {
+    const inGame  = currentScene === SCENE.game && !gameOver;
+    const inEntry = inNameEntry();
+    if (!inGame && !inEntry) return;
+    if (e.repeat) return;
+    e.preventDefault();
+    pressBegin("key:Space");
+    return;
+  }
+  // P pauses the running game and toggles the options screen.
+  if (e.code === "KeyP" && !e.repeat) {
+    if (currentScene === SCENE.game && !gameOver) {
+      paused = true;
+      enterScene(SCENE.settings);
+    } else if (currentScene === SCENE.settings && paused) {
+      paused = false;
+      enterScene(SCENE.game);
+    }
+  }
 });
 window.addEventListener("keyup", (e) => {
   if (e.code !== "Space") return;

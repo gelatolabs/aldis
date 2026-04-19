@@ -23,7 +23,9 @@ function enterScene(s) {
   sceneTime = 0;
   dragSlider = null;
   if (typeof clearInputState === "function") clearInputState();
-  if (s === SCENE.settings) setAim(0);
+  // Reset the aim only when fresh-opening the calibration screen — not when
+  // pausing, which should preserve the in-game aim.
+  if (s === SCENE.settings && !paused) setAim(0);
 }
 
 // ----- Buttons -----
@@ -42,8 +44,11 @@ function currentButtons() {
   }
   if (currentScene === SCENE.settings) {
     return [
-      { label: "START",   x: cx - 60, y: 560, w: 120, h: 44,
-        action: () => { resetGame(); enterScene(SCENE.game); } },
+      paused
+        ? { label: "RESUME", x: cx - 70, y: 560, w: 140, h: 44,
+            action: () => { paused = false; enterScene(SCENE.game); } }
+        : { label: "START",  x: cx - 60, y: 560, w: 120, h: 44,
+            action: () => { resetGame(); enterScene(SCENE.game); } },
     ];
   }
   if (currentScene === SCENE.credits || currentScene === SCENE.scores
@@ -86,19 +91,41 @@ function buttonHit(btn, x, y) {
 // ----- Sliders (settings screen) -----
 
 const sliders = [
+  { key: "volume",   label: "VOLUME",
+    x: 240, y: 206, w: 540, h: 10,
+    min: 0.0, max: 1.0,
+    format: v => Math.round(v * 100) + "%" },
   { key: "base",     label: "SCROLL SPEED",
-    x: 240, y: 230, w: 540, h: 10,
+    x: 240, y: 354, w: 540, h: 10,
     min: 0.00001, max: 0.002,
     format: v => Math.round(v * 100000).toString() },
   { key: "accelMax", label: "ACCELERATION",
-    x: 240, y: 310, w: 540, h: 10,
+    x: 240, y: 414, w: 540, h: 10,
     min: 1.0, max: 20.0,
     format: v => v.toFixed(1) + "x" },
-  { key: "volume",   label: "VOLUME",
-    x: 240, y: 390, w: 540, h: 10,
-    min: 0.0, max: 1.0,
-    format: v => Math.round(v * 100) + "%" },
 ];
+
+// Display segmented control — three buttons (Default / Scaled / Fullscreen).
+// "Scaled" is hidden when the viewport already can't fit the canvas natively.
+const DISPLAY_ROW_Y = 116;
+const DISPLAY_BTN_H = 34;
+const DISPLAY_BTN_W = 130;
+const DISPLAY_BTN_GAP = 8;
+const DISPLAY_LABELS = { default: "Default", scaled: "Scaled", fullscreen: "Fullscreen" };
+
+function displayButtons() {
+  const options = ["default", "scaled", "fullscreen"]
+    .filter(o => displayOptionAvailable(o));
+  const startX = 240;
+  return options.map((opt, i) => ({
+    key: opt,
+    label: DISPLAY_LABELS[opt],
+    x: startX + i * (DISPLAY_BTN_W + DISPLAY_BTN_GAP),
+    y: DISPLAY_ROW_Y,
+    w: DISPLAY_BTN_W,
+    h: DISPLAY_BTN_H,
+  }));
+}
 let dragSlider = null;
 
 function sliderHit(s, x, y) {

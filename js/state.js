@@ -74,7 +74,12 @@ const settings = {
   base: 0.0002,
   accelMax: 10.0,
   volume: 0.5,
+  display: "default",  // "default" | "scaled" | "fullscreen"
 };
+
+// Set true while pausing the game from the Options screen; resumes instead of
+// restarting when the user clicks the primary button.
+let paused = false;
 
 // Press → morse translation: hold duration threshold between dot and dash.
 const DASH_MS = 180;
@@ -90,6 +95,10 @@ function loadSettings() {
     if (typeof data.base === "number")     settings.base = data.base;
     if (typeof data.accelMax === "number") settings.accelMax = data.accelMax;
     if (typeof data.volume === "number")   settings.volume = data.volume;
+    if (typeof data.display === "string" &&
+        ["default","scaled","fullscreen"].includes(data.display)) {
+      settings.display = data.display;
+    }
   } catch (e) { /* ignore */ }
 }
 
@@ -99,11 +108,69 @@ function saveSettings() {
       base: settings.base,
       accelMax: settings.accelMax,
       volume: settings.volume,
+      display: settings.display,
     }));
   } catch (e) { /* quota or privacy mode — ignore */ }
 }
 
 loadSettings();
+
+// ----- Display (canvas scaling / fullscreen) -----
+
+function viewportTooSmall() {
+  return window.innerWidth < 1024 || window.innerHeight < 640;
+}
+
+// Frozen when entering fullscreen so the Scaled button's visibility doesn't
+// flicker on/off just because the fullscreen viewport is bigger than the
+// windowed one.
+let scaledHiddenAtFsEntry = false;
+
+// Remembers the display mode that was active before entering fullscreen, so
+// dropping out of fullscreen returns to that mode instead of "default".
+let preFullscreenMode = "default";
+
+function displayOptionAvailable(opt) {
+  if (opt === "scaled") {
+    if (document.fullscreenElement) return !scaledHiddenAtFsEntry;
+    return !viewportTooSmall();
+  }
+  return true;
+}
+
+function applyDisplay() {
+  const mode = settings.display || "default";
+  const useScaled = mode !== "default" || viewportTooSmall();
+  canvas.classList.toggle("scaled", useScaled);
+
+  const inFs = !!document.fullscreenElement;
+  if (mode === "fullscreen" && !inFs) {
+    scaledHiddenAtFsEntry = viewportTooSmall();
+    try {
+      const p = document.documentElement.requestFullscreen &&
+                document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* no-op */ }
+  } else if (mode !== "fullscreen" && inFs) {
+    try {
+      const p = document.exitFullscreen && document.exitFullscreen();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* no-op */ }
+  }
+}
+
+// Apply once now and on viewport/fullscreen changes.
+applyDisplay();
+window.addEventListener("resize", applyDisplay);
+document.addEventListener("fullscreenchange", () => {
+  // If fullscreen was exited (e.g. Esc pressed), return to the mode the
+  // user was in before they enabled fullscreen.
+  if (!document.fullscreenElement && settings.display === "fullscreen") {
+    settings.display = preFullscreenMode || "default";
+    saveSettings();
+    applyDisplay();
+  }
+});
 
 const BASE_SPEED = 28;
 function baseSpeed() {
