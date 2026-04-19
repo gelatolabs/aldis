@@ -18,7 +18,7 @@ const STORY_STAGES = [
 ];
 
 const STORY_FADE_MS    = 400;
-const STORY_CHAR_MS    = 30;      // per-character reveal rate for text stages
+const STORY_CHAR_MS    = 35;      // per-character reveal rate for text stages
 const STORY_SPAWN_MS   = 4000;    // interval between scripted enemy spawns
 const STORY_POST_MS    = 1000;    // delay after last defeat before next stage
 
@@ -30,7 +30,8 @@ const story = {
   spawnTimer: 0,       // ms until next spawn
   postStageTimer: 0,   // ms until auto-advance after last defeat
   postStageActive: false,
-  textTimer: 0,        // ms the current text stage has been on screen
+  textShown: 0,        // characters revealed so far (drives reveal + audio)
+  textCharTimer: 0,    // ms until the next character reveals
   textLines: null,     // cached wrapped lines for the current text stage
   fadeAlpha: 0,        // 0 = visible, 1 = black
   transitioning: false,
@@ -64,10 +65,12 @@ function beginStoryStage(i) {
   }
 
   if (stage.type === "text") {
-    story.textTimer = 0;
+    story.textShown = 0;
+    story.textCharTimer = 0;
     story.textLines = null;  // recomputed on first draw
     story.fadeAlpha = 1;
     story.transitioning = false;
+    primeAudio();
     enterScene(SCENE.storyText);
     return;
   }
@@ -181,8 +184,35 @@ function updateStory(dt) {
   updateStoryFade(dt);
 }
 
+// Extra pause (ms) after revealing a punctuation character, on top of the
+// normal per-character delay.
+function charPauseAfter(ch) {
+  if (ch === "." || ch === "!" || ch === "?") return 200;
+  if (ch === "," || ch === ";" || ch === ":") return 100;
+  return 0;
+}
+
+// True when the alphanumeric char at `idx` is part of a word followed by `!`.
+function charInExclamatoryWord(text, idx) {
+  let end = idx;
+  while (end < text.length && /[A-Za-z0-9]/.test(text[end])) end++;
+  return text[end] === "!";
+}
+
 function updateStoryText(dt) {
-  story.textTimer += dt;
+  // Wait until audio is ready so the first letter appears in sync with its sound.
+  if (!audioReady()) { updateStoryFade(dt); return; }
+  const stage = STORY_STAGES[story.index];
+  if (stage && stage.type === "text") {
+    story.textCharTimer -= dt;
+    while (story.textCharTimer <= 0 && story.textShown < stage.content.length) {
+      const ch = stage.content[story.textShown];
+      const pitchMul = charInExclamatoryWord(stage.content, story.textShown) ? 1.18 : 1;
+      playAnimalese(ch, pitchMul);
+      story.textShown += 1;
+      story.textCharTimer += STORY_CHAR_MS + charPauseAfter(ch);
+    }
+  }
   updateStoryFade(dt);
 }
 
@@ -199,9 +229,9 @@ function updateStoryFade(dt) {
 }
 
 function storyTextFullyPrinted() {
-  const stage =STORY_STAGES[story.index];
+  const stage = STORY_STAGES[story.index];
   if (!stage || stage.type !== "text") return false;
-  return Math.floor(story.textTimer / STORY_CHAR_MS) >= stage.content.length;
+  return story.textShown >= stage.content.length;
 }
 
 function storyTextClickAdvance() {
@@ -211,7 +241,8 @@ function storyTextClickAdvance() {
   if (!storyTextFullyPrinted()) {
     const stage = STORY_STAGES[story.index];
     if (stage && stage.type === "text") {
-      story.textTimer = stage.content.length * STORY_CHAR_MS;
+      story.textShown = stage.content.length;
+      story.textCharTimer = 0;
     }
     return;
   }
@@ -260,8 +291,7 @@ function drawStoryText() {
     if (!story.textLines) story.textLines = wrapText(stage.content, blockW);
     const lines = story.textLines;
 
-    const shown = Math.min(stage.content.length,
-                           Math.floor(story.textTimer / STORY_CHAR_MS));
+    const shown = story.textShown;
     const lineH = 36;
     const totalH = lineH * lines.length;
     const startY = (H - totalH) / 2;

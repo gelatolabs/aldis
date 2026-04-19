@@ -86,6 +86,7 @@ function clearInputState() {
 
 canvas.addEventListener("mousedown", (e) => {
   e.preventDefault();
+  primeAudio();
   const { x, y } = canvasCoords(e);
 
   if (currentScene === SCENE.splash) { enterScene(SCENE.menu); return; }
@@ -181,6 +182,7 @@ function volumeSliderSound(s) {
 window.addEventListener("blur", clearInputState);
 
 window.addEventListener("keydown", (e) => {
+  primeAudio();
   if (e.code === "Space") {
     const inGame  = currentScene === SCENE.game && !gameOver;
     const inEntry = inNameEntry();
