@@ -339,7 +339,6 @@ function drawStory() {
   drawRadarDots();
   drawAlertDots();
   drawAimLine();
-  drawBeam();
   drawLamp();
   drawInputBuffer();
   drawMorseChart();

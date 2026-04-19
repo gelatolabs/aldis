@@ -43,9 +43,9 @@ const beamGlowCanvas = buildMaskCanvas(255, 245, 200, (along, perp) => {
   const twoSigmaSq = 2 * (bw * 0.55) * (bw * 0.55);
   const perpFall = Math.exp(-(perp * perp) / twoSigmaSq);
   const r2 = along * along + perp * perp;
-  const r0sq = 600 * 600;
+  const r0sq = 700 * 700;
   const alongFall = r0sq / (r0sq + r2);
-  return perpFall * alongFall;
+  return Math.min(1, perpFall * alongFall * 1.2);
 });
 
 const beamSpriteCanvas = buildMaskCanvas(255, 255, 255, (along, perp) => {
@@ -165,7 +165,6 @@ function drawGame() {
   drawRadarDots();
   drawAlertDots();    // red flashing warning on enemies near the left edge
   drawAimLine();
-  drawBeam();         // bright core wedge (lamp is drawn on top of its base)
   drawLamp();
   drawInputBuffer();
   drawMorseChart();
@@ -485,37 +484,6 @@ function drawAimLine() {
   ctx.restore();
 }
 
-// The bright core of the beam — a slim wedge that narrows at the lens and
-// widens slightly over distance. Drawn before the lamp so the lamp sprite
-// hides the base.
-function drawBeam() {
-  if (lamp.beamTimer <= 0) return;
-  const maxDur = lamp.beamKind === "dash" ? 220 : 80;
-  const t = Math.max(0, lamp.beamTimer / maxDur);
-  const end = beamEndpoint(1800);
-  const { x: lensX, y: lensY } = beamLensPos();
-
-  const nearHW = lamp.beamKind === "dash" ? 2 : 1.2;
-  const farHW  = lamp.beamKind === "dash" ? 18 : 10;
-  const px = -Math.sin(lamp.angle);
-  const py =  Math.cos(lamp.angle);
-
-  ctx.save();
-  ctx.globalAlpha = t;
-  const grad = ctx.createLinearGradient(lensX, lensY, end.x, end.y);
-  grad.addColorStop(0, "rgba(255,245,160,0.95)");
-  grad.addColorStop(1, "rgba(255,245,160,0)");
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.moveTo(lensX + px * nearHW, lensY + py * nearHW);
-  ctx.lineTo(end.x + px * farHW,  end.y + py * farHW);
-  ctx.lineTo(end.x - px * farHW,  end.y - py * farHW);
-  ctx.lineTo(lensX - px * nearHW, lensY - py * nearHW);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-}
-
 // Per-enemy illumination. Returns the *best* cone coverage across the
 // enemy's center and four corners, so an enemy with only its edge poking
 // into the beam still reports as lit. 0 = dark, 1 = full light at center.
@@ -617,7 +585,7 @@ function drawBeamLight() {
 // can erase the portion that would fall behind a sprite — otherwise the
 // shadow shows through the partially-transparent edge of the sprite.
 function drawShadows(bi) {
-  const SHADOW_OFFSET = 10;
+  const SHADOW_OFFSET = 8;
   const alpha = 0.85 * bi;
 
   // Stage 1: draw silhouettes offset away from the lamp on the offscreen
