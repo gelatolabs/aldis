@@ -163,17 +163,17 @@ function drawBackdrop(cx, cy) {
 function drawGame() {
   drawBackdrop(lamp.x, lamp.y);
 
+  drawAimLine();      // dashed reference line
   drawBeamLight();    // illuminates backdrop and sprites within the cone
   drawEnemyWords();   // words revealed by radar or partial illumination
-  drawDeathAnims();
-  drawRadarDots();
-  drawAlertDots();    // red flashing warning on enemies near the left edge
-  drawAimLine();
-  drawLamp();
-  drawInputBuffer();
-  drawMorseChart();
-  drawHUD();
-  drawHealth();
+  drawDeathAnims();   // enemy death explosions
+  drawRadarDots();    // green dots on enemies revealed by radar
+  drawAlertDots();    // red flashing dots on enemies near the left edge
+  drawLamp();         // player sprite
+  drawInputBuffer();  // morse input over enemies
+  drawMorseChart();   // alphabet reference
+  drawHUD();          // game UI
+  drawHealth();       // health bar
   if (gameOver) drawGameOver();
   if (currentScene === SCENE.game) drawTutorialFade();
 }

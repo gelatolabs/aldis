@@ -329,12 +329,12 @@ function drawStoryGameOverDialog() {
 
 function drawStory() {
   drawBackdrop(lamp.x, lamp.y);
+  drawAimLine();
   drawBeamLight();
   drawEnemyWords();
   drawDeathAnims();
   drawRadarDots();
   drawAlertDots();
-  drawAimLine();
   drawLamp();
   drawInputBuffer();
   drawMorseChart();
