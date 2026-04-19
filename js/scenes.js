@@ -87,9 +87,9 @@ function currentButtons() {
           submitTopScore();
           enterScene(SCENE.leaderboard);
         } },
-      { label: "MENU",
+      { label: "SKIP", variant: "danger",
         x: cx - 60, y: H - 70, w: 120, h: 40,
-        action: () => enterScene(SCENE.menu) },
+        action: () => enterScene(SCENE.leaderboard) },
     ];
   }
   return [];
