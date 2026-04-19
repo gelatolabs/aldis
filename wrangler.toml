@@ -1,0 +1,9 @@
+name = "aldis"
+compatibility_date = "2026-04-18"
+
+[assets]
+directory = "./"
+
+[[routes]]
+pattern = "aldis.gelatolabs.xyz"
+custom_domain = true

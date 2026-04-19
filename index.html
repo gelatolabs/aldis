@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ALDIS</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #05050a;
+    color: #cfd;
+    font-family: "Courier New", monospace;
+    overflow: hidden;
+    height: 100%;
+  }
+  #wrap {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    background: #0a0a14;
+    image-rendering: pixelated;
+    display: block;
+    box-shadow: 0 0 30px #0af4;
+    cursor: crosshair;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="1024" height="640"></canvas>
+</div>
+<script src="js/morse.js"></script>
+<script src="js/words.js"></script>
+<script src="js/state.js"></script>
+<script src="js/enemies.js"></script>
+<script src="js/beam.js"></script>
+<script src="js/scenes.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/input.js"></script>
+<script src="js/render.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
