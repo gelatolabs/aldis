@@ -14,3 +14,11 @@ custom_domain = true
 binding = "SCORES"
 id = "e170efe8f6ea42c2a48bf306881e97e7"
 preview_id = "2dff39920b004b06a28302f18cccb253"
+
+[[durable_objects.bindings]]
+name = "LOBBY"
+class_name = "Lobby"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Lobby"]

@@ -5,25 +5,52 @@ const ctx = canvas.getContext("2d");
 const W = canvas.width;
 const H = canvas.height;
 
+// The lamp the local player controls. In multiplayer modes its `x`/`y` and
+// the direction its beam swings are reconfigured by setupForMode().
 const lamp = {
   x: 70,
   y: H / 2,
   angle: 0,
-  // aim is in [-1, 1], mapped linearly to angle in [-π/2, π/2].
-  // Scroll speed acceleration is applied in the wheel handler.
+  // aim is in [-1, 1], mapped linearly to a swing range that depends on the
+  // current mode (see lampAimRange).
   aim: 0,
   beamTimer: 0,
   beamKind: null,
   held: false,
 };
 
+// Mirror of the peer's lamp used for rendering only — in multiplayer this is
+// updated from received "input" messages.
+const peerLamp = {
+  x: 0,
+  y: 0,
+  angle: 0,
+  aim: 0,
+  beamTimer: 0,
+  beamKind: null,
+  held: false,
+  active: false,
+};
+
+// Aim range for the local lamp. Survival/co-op players sweep ±π/2 around
+// "facing right". The right-side versus player faces left, so its aim range is
+// mirrored: aim=-1 → angle=π+π/2, aim=+1 → angle=π-π/2.
+let lampAimMid  = 0;          // center angle (radians)
+let lampAimSpan = Math.PI / 2; // half-range in radians
+
 function setAim(v) {
   lamp.aim = Math.max(-1, Math.min(1, v));
-  lamp.angle = lamp.aim * (Math.PI / 2);
+  lamp.angle = lampAimMid + lamp.aim * lampAimSpan;
 }
 
 const player = {
   maxHealth: 10,
+  missed: 0,
+};
+
+// Versus-only: the peer's HP we display alongside our own.
+const peerPlayer = {
+  maxHealth: 3,
   missed: 0,
 };
 
@@ -45,10 +72,17 @@ let windowFocused = true;
 let gameOver = false;
 let score = 0;
 
+// Per-player co-op contributions. `score` is the shared total; these track
+// each player's individual contribution so the end-of-game screens can show
+// a "you / them" breakdown.
+let coopOwnScore = 0;
+let coopPeerScore = 0;
+
 // Tracks the aim angle from the previous frame so a scroll that jumps the
 // lamp across multiple degrees still "sweeps" and pings any enemies the aim
 // line passed over between frames.
 let prevLampAngle = 0;
+let prevPeerLampAngle = 0;
 
 // Beam cone geometry (constants — referenced by both radar/illum logic and
 // the beam-light renderer).
@@ -70,7 +104,21 @@ const SCENE = {
   storyText: "storyText",
   highScoreEntry: "highScoreEntry",
   leaderboard: "leaderboard",
+  matchmaking: "matchmaking",
+  versusEnd: "versusEnd",
 };
+
+// Active gameplay mode — set when a game starts. "survival" / "story" use the
+// standard single-lamp setup. "coop" pairs two lamps stacked on the left side.
+// "versus" puts one lamp on each side and adds a per-player HP.
+let gameMode = "survival";
+
+// Versus-only: did we win or lose?
+let versusWon = false;
+
+// Counter used to assign deterministic ids to enemies spawned by the host so
+// peers can address them in kill / miss events.
+let nextEnemyId = 1;
 
 // Which flow the player chose on the menu; read by the START button on the
 // options screen to route into survival or story.

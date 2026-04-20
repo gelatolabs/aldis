@@ -34,7 +34,10 @@ canvas.addEventListener("wheel", (e) => {
 
   const mul = 1 + Math.min(settings.accelMax - 1,
                            Math.max(0, (scrollSpeed - 0.4) * 2.0));
-  setAim(lamp.aim + e.deltaY * settings.base * mul);
+  // Inverted scroll direction for right-side player in versus mode.
+  const myIsRight = gameMode === "versus" && net.role !== net.topRole;
+  const sign = myIsRight ? -1 : 1;
+  setAim(lamp.aim + sign * e.deltaY * settings.base * mul);
 }, { passive: false });
 
 // Any mouse button or the spacebar starts a press; releasing before DASH_MS
@@ -194,9 +197,10 @@ window.addEventListener("keydown", (e) => {
     pressBegin("key:Space");
     return;
   }
-  // P pauses the running game and toggles the options screen.
+  // P pauses the running game and toggles the options screen. Disabled in
+  // multiplayer.
   if (e.code === "KeyP" && !e.repeat) {
-    if ((currentScene === SCENE.game && !gameOver)
+    if ((currentScene === SCENE.game && !gameOver && !netInMatch())
         || currentScene === SCENE.tutorial
         || (currentScene === SCENE.story && !story.gameOver)) {
       paused = true;
@@ -257,14 +261,7 @@ function matchEnemy(enemy) {
     enemy.morse = "";
     enemy.morseTimer = 0;
     if (enemy.typed >= enemy.word.length) {
-      enemy.alive = false;
-      enemy.deathAnim = 400;
-      if (currentScene !== SCENE.story) {
-        const pts = enemy.typeKey === "runner" ? 250 : 50 * enemy.word.length;
-        enemy.deathPoints = pts;
-        score += pts;
-      }
-      spawnEnemyExplosion(enemy);
+      handleEnemyKill(enemy);
     }
   } else if (expectedMorse.startsWith(enemy.morse)) {
     enemy.hitFlash = 60;
@@ -275,5 +272,40 @@ function matchEnemy(enemy) {
     enemy.lastTimer = LAST_LETTER_DISPLAY_MS;
     enemy.morse = "";
     enemy.morseTimer = 0;
+  }
+}
+
+// When an enemy dies in survival/co-op, points are awarded. In versus the
+// enemy's direction is reversed and the word changed instead of being removed.
+function handleEnemyKill(enemy) {
+  if (gameMode === "versus") {
+    const list = ENEMY_TYPES.fodder.wordList;
+    const newWord = list[Math.floor(Math.random() * list.length)];
+    const newVx = -enemy.vx;
+    enemy.word = newWord;
+    enemy.vx = newVx;
+    enemy.typed = 0;
+    enemy.hitFlash = 160;
+    enemy.morse = ""; enemy.morseTimer = 0;
+    enemy.lastMorse = ""; enemy.lastTimer = 0;
+    if (netInMatch()) {
+      netSend({ type: "kill", id: enemy.id, points: 0,
+                replaceWith: { word: newWord, vx: newVx, x: enemy.x, y: enemy.y } });
+    }
+    return;
+  }
+
+  enemy.alive = false;
+  enemy.deathAnim = 400;
+  let pts = 0;
+  if (currentScene !== SCENE.story) {
+    pts = enemy.typeKey === "runner" ? 250 : 50 * enemy.word.length;
+    enemy.deathPoints = pts;
+    score += pts;
+    if (gameMode === "coop") coopOwnScore += pts;
+  }
+  spawnEnemyExplosion(enemy);
+  if (gameMode === "coop" && netInMatch()) {
+    netSend({ type: "kill", id: enemy.id, points: pts });
   }
 }

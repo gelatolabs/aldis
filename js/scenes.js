@@ -33,7 +33,10 @@ function enterScene(s) {
 function startPendingGame() {
   if (pendingStart === "story") {
     enterStory();
+  } else if (pendingStart === "coop" || pendingStart === "versus") {
+    enterMatchmaking(pendingStart);
   } else if (tutorialSeen()) {
+    gameMode = "survival";
     resetGame();
     enterScene(SCENE.game);
   } else {
@@ -47,19 +50,67 @@ function beginFromMenu(mode) {
   else enterScene(SCENE.settings);
 }
 
+function enterMatchmaking(mode) {
+  net.onMatch = () => {
+    gameMode = mode;
+    resetGame();
+    enterScene(SCENE.game);
+  };
+  net.onPeerLeft = () => {
+    // High-score entry is the one place we want to gracefully degrade rather
+    // than dump the player back to the menu — we treat the missing peer as
+    // having skipped so the local player can still submit.
+    if (currentScene === SCENE.highScoreEntry && gameMode === "coop") {
+      if (!coopPeerSubmitted) {
+        recordPeerCoopSkip();
+      }
+      return;
+    }
+    // The match is already over on these scenes — let the player keep admiring
+    // the win/lose or leaderboard screen instead of yanking them back to the
+    // menu when the other side disconnects.
+    if (currentScene === SCENE.versusEnd
+        || currentScene === SCENE.leaderboard) {
+      return;
+    }
+    if (currentScene === SCENE.game) {
+      enterScene(SCENE.menu);
+    }
+  };
+  net.onPeerMessage = handlePeerMessage;
+  netStartMatchmaking(mode);
+  enterScene(SCENE.matchmaking);
+}
+
 function currentButtons() {
   const cx = W / 2;
   if (currentScene === SCENE.menu) {
+    // 4x2 buttons:
+    //   Story    Survival
+    //   Co-op    Versus
+    //   Scores   Options
+    //   Tutorial Credits
+    const bw = 220, bh = 54, gap = 24;
+    const top = 250;
+    const xL = cx - bw - gap / 2;
+    const xR = cx + gap / 2;
+    const rowY = (i) => top + i * (bh + gap);
     return [
-      { label: "STORY",    x: cx - 120, y: 228, w: 240, h: 56,
+      { label: "STORY",    x: xL, y: rowY(0), w: bw, h: bh,
         action: () => beginFromMenu("story") },
-      { label: "SURVIVAL", x: cx - 120, y: 298, w: 240, h: 56,
+      { label: "SURVIVAL", x: xR, y: rowY(0), w: bw, h: bh,
         action: () => beginFromMenu("survival") },
-      { label: "SCORES",   x: cx - 120, y: 368, w: 240, h: 56,
-        action: () => { fetchTopScores(); enterScene(SCENE.scores); } },
-      { label: "OPTIONS",  x: cx - 120, y: 438, w: 240, h: 56,
+      { label: "CO-OP",    x: xL, y: rowY(1), w: bw, h: bh,
+        action: () => beginFromMenu("coop") },
+      { label: "VERSUS",   x: xR, y: rowY(1), w: bw, h: bh,
+        action: () => beginFromMenu("versus") },
+      { label: "SCORES",   x: xL, y: rowY(2), w: bw, h: bh,
+        action: () => { fetchTopScores(); fetchTopCoopScores(); enterScene(SCENE.scores); } },
+      { label: "OPTIONS",  x: xR, y: rowY(2), w: bw, h: bh,
         action: () => { pendingStart = null; enterScene(SCENE.settings); } },
-      { label: "CREDITS",  x: cx - 120, y: 508, w: 240, h: 56,
+      { label: "TUTORIAL", x: xL, y: rowY(3), w: bw, h: bh,
+        action: () => enterTutorial(() => enterScene(SCENE.menu)) },
+      { label: "CREDITS",  x: xR, y: rowY(3), w: bw, h: bh,
         action: () => enterScene(SCENE.credits) },
     ];
   }
@@ -68,7 +119,7 @@ function currentButtons() {
       return [
         { label: "QUIT", variant: "danger",
           x: cx - 160, y: 560, w: 140, h: 44,
-          action: () => { paused = false; enterScene(SCENE.menu); } },
+          action: () => { paused = false; netDisconnect(); enterScene(SCENE.menu); } },
         { label: "RESUME",
           x: cx +  20, y: 560, w: 140, h: 44,
           action: () => { paused = false; enterScene(pausedFrom); } },
@@ -94,7 +145,20 @@ function currentButtons() {
       || currentScene === SCENE.leaderboard) {
     return [
       { label: "MENU", x: cx - 60, y: H - 70, w: 120, h: 40,
-        action: () => enterScene(SCENE.menu) },
+        action: () => { netDisconnect(); enterScene(SCENE.menu); } },
+    ];
+  }
+  if (currentScene === SCENE.matchmaking) {
+    return [
+      { label: "CANCEL", variant: "danger",
+        x: cx - 60, y: H - 90, w: 120, h: 44,
+        action: () => { netCancelMatchmaking(); enterScene(SCENE.menu); } },
+    ];
+  }
+  if (currentScene === SCENE.versusEnd) {
+    return [
+      { label: "MENU", x: cx - 60, y: H / 2 + 40, w: 120, h: 44,
+        action: () => { netDisconnect(); enterScene(SCENE.menu); } },
     ];
   }
   if (currentScene === SCENE.story && story.gameOver) {
@@ -108,9 +172,31 @@ function currentButtons() {
     ];
   }
   if (currentScene === SCENE.highScoreEntry) {
+    if (gameMode === "coop") {
+      const panelCX = 770;
+      const boxSize = 56, boxGap = 12;
+      const totalBoxW = boxSize * 3 + boxGap * 2;
+      const startX = panelCX - totalBoxW / 2;
+      const youY = 200;
+      return [
+        { label: "<",
+          x: startX + totalBoxW + boxGap, y: youY, w: boxSize, h: boxSize,
+          disabled: coopOwnSubmitted || coopOwnName.length === 0,
+          action: () => { if (coopOwnName.length > 0)
+            coopOwnName = coopOwnName.slice(0, -1); } },
+        { label: "SUBMIT",
+          x: panelCX - 100, y: youY + boxSize + 36, w: 200, h: 44,
+          disabled: coopOwnSubmitted || coopOwnName.length !== 3,
+          action: submitCoopOwnName },
+        { label: "SKIP", variant: "danger",
+          x: cx - 60, y: H - 70, w: 120, h: 40,
+          disabled: coopOwnSubmitted,
+          action: skipCoopOwnName },
+      ];
+    }
+    const panelCX = 770;
     const boxSize = 60, boxGap = 14;
     const totalBoxW = boxSize * 3 + boxGap * 2;
-    const panelCX = 700;
     const startX = panelCX - totalBoxW / 2;
     const boxY = 240;
     return [

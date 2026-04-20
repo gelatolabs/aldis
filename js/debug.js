@@ -34,6 +34,7 @@ function hideDebugHud() {
 }
 
 function debugSceneAllowed() {
+  if (netInMatch()) return false;
   return currentScene === SCENE.game || currentScene === SCENE.story;
 }
 

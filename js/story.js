@@ -39,6 +39,8 @@ const story = {
 };
 
 function enterStory() {
+  if (typeof netDisconnect === "function") netDisconnect();
+  gameMode = "story";
   story.active = true;
   story.index = -1;
   story.stageSlots = [];

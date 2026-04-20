@@ -37,6 +37,8 @@ function tutorialScrollLocked() {
 }
 
 function enterTutorial(onExit) {
+  if (typeof netDisconnect === "function") netDisconnect();
+  gameMode = "survival";
   resetGame();
   tutorial.step = "dot";
   tutorial.enemy = null;

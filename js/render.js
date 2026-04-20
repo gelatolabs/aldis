@@ -118,6 +118,8 @@ function render() {
     case SCENE.game:           drawGame();            break;
     case SCENE.highScoreEntry: drawHighScoreEntry();  break;
     case SCENE.leaderboard:    drawLeaderboardScene();break;
+    case SCENE.matchmaking:    drawMatchmaking();     break;
+    case SCENE.versusEnd:      drawVersusEnd();       break;
   }
   if (settings.postProcess) drawCrtOverlay();
 }
@@ -282,16 +284,20 @@ function drawGame() {
   drawBackdrop(lamp.x, lamp.y);
 
   drawAimLine();      // dashed reference line
+  if (peerLamp.active) drawPeerAimLine();
   drawBeamLight();    // illuminates backdrop and sprites within the cone
+  if (peerLamp.active) drawPeerBeamLight();
   drawEnemyWords();   // words revealed by radar or partial illumination
   drawDeathAnims();   // enemy death explosions
   drawRadarDots();    // green dots on enemies revealed by radar
   drawAlertDots();    // red flashing dots on enemies near the left edge
   drawLamp();         // player sprite
+  if (peerLamp.active) drawPeerLamp();
   drawInputBuffer();  // morse input over enemies
   drawMorseChart();   // alphabet reference
   drawHUD();          // game UI
   drawHealth();       // health bar
+  if (peerLamp.active && gameMode === "versus") drawPeerHealth();
   if (gameOver) drawGameOver();
   if (currentScene === SCENE.game) drawTutorialFade();
 }
@@ -321,13 +327,13 @@ function drawMenu() {
   ctx.textAlign = "center";
   ctx.fillStyle = "#cfd";
   ctx.font = "bold 72px 'Libertinus Mono', monospace";
-  ctx.fillText("ALDIS", W / 2 + 3, 136);
+  ctx.fillText("ALDIS", W / 2 + 3, 155);
 
   {
     const morse = ".- .-.. -.. .. ...";
     const size = 18;
     const w = measureMorse(morse, size);
-    drawMorse(ctx, morse, W / 2 - w / 2, 161, size, "#7a9");
+    drawMorse(ctx, morse, W / 2 - w / 2, 180, size, "#7a9");
   }
 
   drawButtons();
@@ -463,39 +469,56 @@ function drawScoresScene() {
   ctx.textAlign = "center";
   ctx.fillStyle = "#cfd";
   ctx.font = "bold 42px 'Libertinus Mono', monospace";
-  ctx.fillText("HIGH SCORES", W / 2, 110);
+  ctx.fillText("HIGH SCORES", W / 2, 90);
 
-  const boxX = W / 2 - 220, boxY = 160, boxW = 440, boxH = 380;
+  const boxW = 420, boxH = 410, boxY = 130;
+  const gap = 24;
+  const leftX  = W / 2 - boxW - gap / 2;
+  const rightX = W / 2 + gap / 2;
+  drawScoreboardBox("SURVIVAL", leftX,  boxY, boxW, boxH, topScores,     false);
+  drawScoreboardBox("CO-OP",    rightX, boxY, boxW, boxH, topCoopScores, true);
+
+  ctx.textAlign = "left";
+  drawButtons();
+}
+
+// One scoreboard panel — used for both columns of the menu Scores screen and
+// for the post-game leaderboard scene.
+function drawScoreboardBox(title, boxX, boxY, boxW, boxH, list, wide) {
   ctx.fillStyle = "rgba(30,50,60,0.35)";
   ctx.fillRect(boxX, boxY, boxW, boxH);
   ctx.strokeStyle = "#4a7a9a";
   ctx.lineWidth = 1;
   ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW, boxH);
 
-  ctx.font = "20px 'Libertinus Mono', monospace";
-  if (!topScores) {
+  ctx.fillStyle = "#cfd";
+  ctx.font = "bold 22px 'Libertinus Mono', monospace";
+  ctx.textAlign = "center";
+  ctx.fillText(title, boxX + boxW / 2, boxY + 32);
+
+  ctx.font = (wide ? "16px" : "18px") + " 'Libertinus Mono', monospace";
+  if (!list) {
     ctx.fillStyle = "#9ab";
     ctx.fillText("loading…", boxX + boxW / 2, boxY + boxH / 2);
-  } else if (topScores.length === 0) {
+    return;
+  }
+  if (list.length === 0) {
     ctx.fillStyle = "#9ab";
     ctx.fillText("no scores yet", boxX + boxW / 2, boxY + boxH / 2);
-  } else {
-    ctx.textAlign = "left";
-    for (let i = 0; i < topScores.length; i++) {
-      const row = topScores[i];
-      const y = boxY + 40 + i * 32;
-      ctx.fillStyle = "#9ab";
-      ctx.fillText(String(i + 1).padStart(2, " ") + ".", boxX + 30, y);
-      ctx.fillStyle = "#cfd";
-      ctx.fillText(row.name, boxX + 100, y);
-      ctx.textAlign = "right";
-      ctx.fillText(String(row.score), boxX + boxW - 30, y);
-      ctx.textAlign = "left";
-    }
+    return;
   }
-
   ctx.textAlign = "left";
-  drawButtons();
+  for (let i = 0; i < list.length; i++) {
+    const row = list[i];
+    const y = boxY + 70 + i * 30;
+    ctx.fillStyle = "#9ab";
+    ctx.fillText(String(i + 1).padStart(2, " ") + ".", boxX + 22, y);
+    ctx.fillStyle = "#cfd";
+    ctx.fillText(row.name, boxX + 70, y);
+    ctx.textAlign = "right";
+    ctx.fillText(String(row.score), boxX + boxW - 22, y);
+    ctx.textAlign = "left";
+  }
 }
 
 function drawCredits() {
@@ -551,9 +574,11 @@ function drawHealth() {
   const remaining = player.maxHealth - player.missed;
   const frac = Math.max(0, remaining / player.maxHealth);
   const barW = 14;
-  const barH = 200;
-  const x = 18;
-  const y = lamp.y - barH / 2;
+  const barH = gameMode === "coop" ? 320 : 200;
+  // Place the bar on the same edge as the local lamp so the right-side
+  // versus player's HP shows on the right.
+  const x = lamp.x < W / 2 ? 18 : W - 18 - barW;
+  const y = H / 2 - barH / 2;
 
   ctx.fillStyle = "#9bd";
   ctx.font = "11px 'Libertinus Mono', monospace";
@@ -745,12 +770,322 @@ function drawAimLine() {
   ctx.restore();
 }
 
+function drawPeerAimLine() {
+  const cos = Math.cos(peerLamp.angle);
+  const sin = Math.sin(peerLamp.angle);
+  const sx = peerLamp.x + cos * 28;
+  const sy = peerLamp.y + sin * 28;
+  const ex = peerLamp.x + cos * 1600;
+  const ey = peerLamp.y + sin * 1600;
+  ctx.save();
+  ctx.strokeStyle = "rgba(180,200,220,0.18)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 8]);
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Same beam pipeline as drawBeamLight, but driven by peerLamp state. Co-op:
+// both beams illuminate the shared enemies. Versus: only the local beam
+// illuminates enemies (the peer's beam light passes "through" the same scene
+// since enemies are the same objects, which is fine).
+function drawPeerBeamLight() {
+  const bi = peerBeamIntensity();
+  if (bi <= 0) return;
+  const cos = Math.cos(peerLamp.angle);
+  const sin = Math.sin(peerLamp.angle);
+  const sx = peerLamp.x + cos * 28;
+  const sy = peerLamp.y + sin * 28;
+
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.rotate(peerLamp.angle);
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha = bi;
+  ctx.drawImage(beamGlowCanvas, 0, -MASK_HALF_H);
+  ctx.restore();
+
+  // Sprite lighting from the peer's beam, mirroring drawBeamLight's pipeline.
+  litCtx.clearRect(0, 0, W, H);
+  for (const e of enemies) {
+    if (!e.alive) continue;
+    drawEnemySprite(litCtx, e);
+  }
+  litCtx.save();
+  litCtx.translate(sx, sy);
+  litCtx.rotate(peerLamp.angle);
+  litCtx.globalCompositeOperation = "destination-in";
+  litCtx.drawImage(beamSpriteCanvas, 0, -MASK_HALF_H);
+  litCtx.restore();
+  ctx.save();
+  ctx.globalAlpha = bi;
+  ctx.drawImage(litCanvas, 0, 0);
+  ctx.restore();
+}
+
+function peerBeamIntensity() {
+  if (peerLamp.beamTimer <= 0) return 0;
+  const maxDur = peerLamp.beamKind === "dash" ? 220 : 80;
+  return Math.max(0, peerLamp.beamTimer / maxDur);
+}
+
+// Variant of drawLamp anchored at peerLamp's position/angle, in a slightly
+// cooler colour palette so the two players' lamps are easy to tell apart.
+function drawPeerLamp() {
+  ctx.save();
+  ctx.translate(peerLamp.x, peerLamp.y);
+  ctx.fillStyle = "#2a3340";
+  ctx.fillRect(-13, -13, 26, 26);
+  ctx.fillStyle = "#3f4c5a";
+  ctx.fillRect(-13, -13, 26, 2);
+  ctx.strokeStyle = "#1a1f24";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(-12.5, -12.5, 26, 26);
+  ctx.fillStyle = "#5a6d80";
+  for (const [bx, by] of [[-9, -9], [9, -9], [-9, 9], [9, 9]]) {
+    ctx.beginPath();
+    ctx.arc(bx, by, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(0, 0, 7, 0, Math.PI * 2);
+  ctx.fillStyle = "#1c2530";
+  ctx.fill();
+  ctx.strokeStyle = "#4a586a";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(peerLamp.x, peerLamp.y);
+  ctx.rotate(peerLamp.angle);
+
+  ctx.beginPath();
+  ctx.arc(0, 0, 5, 0, Math.PI * 2);
+  ctx.fillStyle = "#3a4860";
+  ctx.fill();
+  ctx.strokeStyle = "#5a6d80";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = "#3a4860";
+  ctx.fillRect(0, -3.5, 8, 7);
+  ctx.fillStyle = "#52647c";
+  ctx.fillRect(0, -3.5, 8, 1);
+
+  ctx.beginPath();
+  ctx.ellipse(15, 0, 13, 24, 0, Math.PI / 2, 3 * Math.PI / 2, false);
+  ctx.quadraticCurveTo(8, 0, 15, 24);
+  ctx.closePath();
+  const dishGrad = ctx.createRadialGradient(4, -6, 2, 9, 4, 28);
+  dishGrad.addColorStop(0,    "#8c9eb8");
+  dishGrad.addColorStop(0.35, "#586a82");
+  dishGrad.addColorStop(0.85, "#3a4658");
+  dishGrad.addColorStop(1,    "#262d40");
+  ctx.fillStyle = dishGrad;
+  ctx.fill();
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = "#7a8cae";
+  ctx.beginPath();
+  ctx.ellipse(15, 0, 13, 24, 0, Math.PI / 2, 3 * Math.PI / 2, false);
+  ctx.quadraticCurveTo(8, 0, 15, 24);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(15, 20, 28, 0.55)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(15, -22);
+  ctx.quadraticCurveTo(9.5, 0, 15, 22);
+  ctx.stroke();
+
+  ctx.lineWidth = 0.6;
+  ctx.strokeStyle = "rgba(120, 140, 170, 0.4)";
+  for (const k of [0.45, 0.75]) {
+    ctx.beginPath();
+    ctx.ellipse(15, 0, 13 * k, 24 * k, 0,
+                Math.PI / 2, 3 * Math.PI / 2, false);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = "#5a6d80";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(13, -17);
+  ctx.lineTo(24, -6);
+  ctx.moveTo(13,  17);
+  ctx.lineTo(24,  6);
+  ctx.stroke();
+  ctx.lineCap = "butt";
+
+  ctx.beginPath();
+  pathRoundedRect(ctx, 13, -7, 15, 14, 3);
+  const bodyGrad = ctx.createLinearGradient(0, -7, 0, 7);
+  bodyGrad.addColorStop(0,    "#7a8aa8");
+  bodyGrad.addColorStop(0.45, "#586a82");
+  bodyGrad.addColorStop(1,    "#3c4658");
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#222831";
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(28, 0, 7, 0, Math.PI * 2);
+  ctx.fillStyle = "#2a3340";
+  ctx.fill();
+  ctx.strokeStyle = "#5a6d80";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const bi = peerBeamIntensity();
+  if (bi > 0) {
+    ctx.beginPath();
+    ctx.arc(28, 0, 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#5a8eb0";
+    ctx.fill();
+    const a = 0.35 + bi * 0.65;
+    const lensG = ctx.createRadialGradient(28, 0, 0, 28, 0, 9);
+    lensG.addColorStop(0,    `rgba(220, 240, 255, ${a})`);
+    lensG.addColorStop(0.5,  `rgba(160, 210, 255, ${a * 0.55})`);
+    lensG.addColorStop(1,    "rgba(120, 180, 255, 0)");
+    ctx.fillStyle = lensG;
+    ctx.beginPath();
+    ctx.arc(28, 0, 9, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.arc(28, 0, 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#3c4658";
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawPeerHealth() {
+  // Mirror image of drawHealth — anchored to whichever edge the peer's lamp
+  // sits on so the bars match the players' sides.
+  const remaining = peerPlayer.maxHealth - peerPlayer.missed;
+  const frac = Math.max(0, remaining / peerPlayer.maxHealth);
+  const barW = 14;
+  const barH = 200;
+  const x = peerLamp.x < W / 2 ? 18 : W - 18 - barW;
+  const y = H / 2 - barH / 2;
+
+  ctx.fillStyle = "#9bd";
+  ctx.font = "11px 'Libertinus Mono', monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("HP", x + barW / 2 + 1, y - 8);
+  ctx.textAlign = "left";
+
+  ctx.fillStyle = "#1a0f14";
+  ctx.fillRect(x, y, barW, barH);
+  const fillH = barH * frac;
+  const grad = ctx.createLinearGradient(0, y + barH - fillH, 0, y + barH);
+  grad.addColorStop(0, "#8088ff");
+  grad.addColorStop(1, "#3344dd");
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y + barH - fillH, barW, fillH);
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 1;
+  for (let i = 1; i < peerPlayer.maxHealth; i++) {
+    const ty = y + (barH * i) / peerPlayer.maxHealth;
+    ctx.beginPath();
+    ctx.moveTo(x, ty + 0.5);
+    ctx.lineTo(x + barW, ty + 0.5);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "#556";
+  ctx.strokeRect(x + 0.5, y + 0.5, barW, barH);
+}
+
+// ---- Matchmaking scene ----
+
+function drawMatchmaking() {
+  drawBackdrop(W / 2, H / 2);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#cfd";
+  ctx.font = "bold 36px 'Libertinus Mono', monospace";
+  const modeLabel = net.mode === "versus" ? "VERSUS" : "CO-OP";
+  ctx.fillText(modeLabel, W / 2, 180);
+
+  // Spinner
+  const cx = W / 2, cy = H / 2;
+  const r = 38;
+  const t = animTime / 1000;
+  const headOuter = t * 2.1;
+  ctx.save();
+  ctx.lineCap = "round";
+
+  // Faint background ring.
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(120, 255, 160, 0.12)";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Trail: short arc segments fading toward the tail.
+  const segments = 14;
+  const segLen = 0.10;
+  for (let i = 0; i < segments; i++) {
+    const a = headOuter - i * segLen;
+    const f = 1 - i / segments;
+    ctx.strokeStyle = `rgba(160, 255, 180, ${0.85 * f * f})`;
+    ctx.lineWidth = 4 * (0.55 + 0.45 * f);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, a - segLen, a);
+    ctx.stroke();
+  }
+
+  // Bright glow at the head.
+  const hx = cx + Math.cos(headOuter) * r;
+  const hy = cy + Math.sin(headOuter) * r;
+  const glow = ctx.createRadialGradient(hx, hy, 0, hx, hy, 12);
+  glow.addColorStop(0, "rgba(220, 255, 220, 0.95)");
+  glow.addColorStop(1, "rgba(120, 255, 160, 0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(hx, hy, 12, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+
+  // Status line.
+  const dotPhase = (Math.floor(t * 1.8) % 3) + 1;
+  const status = net.status || "Waiting";
+  ctx.font = "20px 'Libertinus Mono', monospace";
+  ctx.fillStyle = "#9eb";
+  ctx.fillText(status + ".".repeat(dotPhase), cx, cy + 80);
+
+  drawButtons();
+  ctx.textAlign = "left";
+}
+
+// ---- Versus end ----
+
+function drawVersusEnd() {
+  drawBackdrop(W / 2, H / 2);
+  ctx.textAlign = "center";
+  ctx.font = "bold 64px 'Libertinus Mono', monospace";
+  ctx.fillStyle = versusWon ? "#7cff7c" : "#ff7c7c";
+  ctx.fillText(versusWon ? "YOU WIN!" : "YOU LOSE!", W / 2, H / 2 - 10);
+  drawButtons();
+  ctx.textAlign = "left";
+}
+
 // Per-enemy illumination. Returns the *best* cone coverage across the
 // enemy's center and four corners, so an enemy with only its edge poking
 // into the beam still reports as lit. 0 = dark, 1 = full light at center.
-function enemyIllumination(e, lensX, lensY) {
-  const ax = Math.cos(lamp.angle);
-  const ay = Math.sin(lamp.angle);
+// `angle` defaults to the local lamp's; pass peerLamp.angle to evaluate the
+// peer's beam in multiplayer.
+function enemyIllumination(e, lensX, lensY, angle) {
+  const a = angle == null ? lamp.angle : angle;
+  const ax = Math.cos(a);
+  const ay = Math.sin(a);
   const t = ENEMY_TYPES[e.typeKey];
   const hw = t.w / 2, hh = t.h / 2;
   const pts = [
@@ -872,6 +1207,13 @@ function drawShadows(bi) {
   ctx.restore();
 }
 
+function peerLensPos() {
+  return {
+    x: peerLamp.x + Math.cos(peerLamp.angle) * 28,
+    y: peerLamp.y + Math.sin(peerLamp.angle) * 28,
+  };
+}
+
 function enemyWordAlpha(e) {
   if (!e.alive) return 0;
   let a = 0;
@@ -881,6 +1223,13 @@ function enemyWordAlpha(e) {
   if (bi > 0) {
     const { x: lx, y: ly } = beamLensPos();
     a = Math.max(a, enemyIllumination(e, lx, ly) * bi * 1.6);
+  }
+  if (peerLamp.active) {
+    const pbi = peerBeamIntensity();
+    if (pbi > 0) {
+      const { x: px, y: py } = peerLensPos();
+      a = Math.max(a, enemyIllumination(e, px, py, peerLamp.angle) * pbi * 1.6);
+    }
   }
   return Math.min(1, a);
 }
@@ -956,7 +1305,7 @@ function drawRadarDots() {
     if (!e.alive) continue;
     // Enemies close enough to get the red alert dot shouldn't also show a
     // green dot.
-    if (e.x <= ALERT_THRESHOLD_X) continue;
+    if (inLocalAlertZone(e)) continue;
     let a = 0;
     if (e.radarActive) a = 1;
     else if (e.radarFade > 0) a = e.radarFade / RADAR_FADE_MS;
@@ -968,18 +1317,39 @@ function drawRadarDots() {
 function drawAlertDots() {
   // Hide when the lamp is lit.
   if (beamIntensity() > 0) return;
-  const ESCAPE_X = 40;
   for (const e of enemies) {
     if (!e.alive) continue;
-    if (e.x > ALERT_THRESHOLD_X) continue;
-    const p = Math.max(0, Math.min(1,
-      1 - (e.x - ESCAPE_X) / (ALERT_THRESHOLD_X - ESCAPE_X)));
+    if (!inLocalAlertZone(e)) continue;
+    const p = alertDanger(e);
     // Flash rate ramps up as the enemy closes in (≈0.5 Hz → ≈1.2 Hz).
     const rate = 0.5 + p * 0.7;
     const phase = (elapsed / 1000) * rate;
     if (Math.floor(phase) % 2 !== 0) continue;
     alertPing(e.x, e.y, 0.75 + 0.25 * p);
   }
+}
+
+// In versus the right-side player's "alert zone" is mirrored — enemies at
+// the right edge are the threat to them.
+function localAlertEdge() {
+  const isRight = gameMode === "versus" && net.role !== net.topRole;
+  return {
+    isRight,
+    escape:    isRight ? W - 40                  : 40,
+    threshold: isRight ? W - ALERT_THRESHOLD_X   : ALERT_THRESHOLD_X,
+  };
+}
+
+function inLocalAlertZone(e) {
+  const { isRight, threshold } = localAlertEdge();
+  return isRight ? e.x >= threshold : e.x <= threshold;
+}
+
+function alertDanger(e) {
+  const { escape, threshold } = localAlertEdge();
+  const span = Math.abs(threshold - escape);
+  const dist = Math.abs(e.x - escape);
+  return Math.max(0, Math.min(1, 1 - dist / span));
 }
 
 function alertPing(x, y, alpha) {
@@ -1048,12 +1418,15 @@ function drawInputBuffer() {
 
 function drawHUD() {
   ctx.textAlign = "left";
-  ctx.font = "13px 'Libertinus Mono', monospace";
-  ctx.fillStyle = "#9ab";
-  ctx.fillText("Press P to pause", 16, 22);
+  const showPause = !netInMatch();
+  if (showPause) {
+    ctx.font = "13px 'Libertinus Mono', monospace";
+    ctx.fillStyle = "#9ab";
+    ctx.fillText("Press P to pause", 16, 22);
+  }
   ctx.font = "bold 20px 'Libertinus Mono', monospace";
   ctx.fillStyle = "#cfd";
-  ctx.fillText("SCORE: " + score, 16, 46);
+  ctx.fillText("SCORE: " + score, 16, showPause ? 46 : 28);
 }
 
 function drawMorseChart() {
@@ -1164,16 +1537,15 @@ function drawAlphabetPanel() {
   ctx.textAlign = "center";
   ctx.fillText("ALPHABET", panelX + panelW / 2, panelY + 28);
 
-  const cols = 2;
   const rows = 13;
-  const cellW = panelW / cols;
   const cellH = 26;
+  const colX = [panelX + 42, panelX + 155];
   ctx.font = "15px 'Libertinus Mono', monospace";
   ctx.textAlign = "left";
   for (let i = 0; i < MORSE_ORDER.length; i++) {
     const col = Math.floor(i / rows);
     const row = i % rows;
-    const x = panelX + col * cellW + 16;
+    const x = colX[col];
     const y = panelY + 54 + row * cellH + 10;
     const ch = MORSE_ORDER[i];
     ctx.fillStyle = "#bfe0ff";
@@ -1192,16 +1564,36 @@ function drawHighScoreEntry() {
   ctx.fillText("SIGNAL LOST", W / 2, 60);
   ctx.fillStyle = "#ccd";
   ctx.font = "20px 'Libertinus Mono', monospace";
-  ctx.fillText("Score: " + score, W / 2, 92);
+  const scoreLine = gameMode === "coop" ? "Total: " + score : "Score: " + score;
+  ctx.fillText(scoreLine, W / 2, 92);
+
+  let nhsY = 128;
+  if (gameMode === "coop") {
+    ctx.font = "16px 'Libertinus Mono', monospace";
+    ctx.fillStyle = "#9ab";
+    ctx.fillText("You: " + coopOwnScore + "    Them: " + coopPeerScore,
+                 W / 2, 116);
+    nhsY = 146;
+  }
 
   ctx.fillStyle = "#ffd34a";
   ctx.font = "bold 22px 'Libertinus Mono', monospace";
-  ctx.fillText("NEW HIGH SCORE", W / 2, 128);
+  ctx.fillText("NEW HIGH SCORE", W / 2, nhsY);
 
   drawAlphabetPanel();
 
-  // Entry panel (right half)
-  const panelCX = 700;
+  if (gameMode === "coop") {
+    drawHighScoreEntryCoop();
+  } else {
+    drawHighScoreEntrySolo();
+  }
+
+  drawButtons();
+  ctx.textAlign = "left";
+}
+
+function drawHighScoreEntrySolo() {
+  const panelCX = 770;
   const boxSize = 60, boxGap = 14;
   const totalBoxW = boxSize * 3 + boxGap * 2;
   const startX = panelCX - totalBoxW / 2;
@@ -1211,27 +1603,8 @@ function drawHighScoreEntry() {
   ctx.font = "14px 'Libertinus Mono', monospace";
   ctx.textAlign = "left";
   ctx.fillText("enter your initials in morse", startX, 215);
-  ctx.textAlign = "center";
-  for (let i = 0; i < 3; i++) {
-    const x = startX + i * (boxSize + boxGap);
-    const current = i === entryName.length && entryName.length < 3;
-    ctx.fillStyle = "rgba(20,30,40,0.85)";
-    ctx.fillRect(x, boxY, boxSize, boxSize);
-    ctx.strokeStyle = current ? "#ffd34a" : "#4a7a9a";
-    ctx.lineWidth = current ? 2 : 1;
-    ctx.strokeRect(x + 0.5, boxY + 0.5, boxSize, boxSize);
-    if (i < entryName.length) {
-      ctx.fillStyle = "#cfd";
-      ctx.font = "bold 36px 'Libertinus Mono', monospace";
-      const m = ctx.measureText(entryName[i]);
-      const asc = m.actualBoundingBoxAscent;
-      const dsc = m.actualBoundingBoxDescent;
-      const letterY = boxY + boxSize / 2 + (asc - dsc) / 2;
-      ctx.fillText(entryName[i], x + boxSize / 2, letterY);
-    }
-  }
+  drawInitialsBoxes(startX, boxY, boxSize, boxGap, entryName, !nameSubmitted);
 
-  // Current morse being typed, under the boxes.
   const morse = inputMorse || lastLetterMorse;
   if (morse) {
     const size = 22;
@@ -1239,8 +1612,74 @@ function drawHighScoreEntry() {
     drawMorse(ctx, morse, panelCX - w / 2, boxY + boxSize + 22, size,
               "rgba(255,220,120,0.95)");
   }
+}
 
-  drawButtons();
+function drawHighScoreEntryCoop() {
+  // Two stacked rows: "YOU" (interactive) on top, "PARTNER" below.
+  const panelCX = 770;
+  const boxSize = 56, boxGap = 12;
+  const totalBoxW = boxSize * 3 + boxGap * 2;
+  const startX = panelCX - totalBoxW / 2;
+  const youY = 200;
+  const partY = 400;
+
+  ctx.font = "14px 'Libertinus Mono', monospace";
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#9ab";
+  ctx.fillText("YOU — enter your initials", startX, youY - 10);
+  drawInitialsBoxes(startX, youY, boxSize, boxGap, coopOwnName, !coopOwnSubmitted);
+
+  // Morse buffer under YOU boxes.
+  if (!coopOwnSubmitted) {
+    const morse = inputMorse || lastLetterMorse;
+    if (morse) {
+      const size = 20;
+      const w = measureMorse(morse, size);
+      drawMorse(ctx, morse, panelCX - w / 2, youY + boxSize + 18, size,
+                "rgba(255,220,120,0.95)");
+    }
+  }
+
+  ctx.font = "14px 'Libertinus Mono', monospace";
+  ctx.fillStyle = "#9ab";
+  ctx.fillText("PARTNER", startX, partY - 10);
+  const partnerName = coopPeerSubmitted ? (coopPeerName || "___") : "";
+  drawInitialsBoxes(startX, partY, boxSize, boxGap, partnerName, false, true);
+
+  // Countdown if the timer is running.
+  const secs = coopSecondPlayerSecondsLeft();
+  if (secs !== null && secs > 0) {
+    ctx.font = "16px 'Libertinus Mono', monospace";
+    ctx.fillStyle = secs < 10 ? "#ff8866" : "#9ab";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      "auto-submit in " + Math.ceil(secs) + "s",
+      panelCX, partY + boxSize + 30);
+    ctx.textAlign = "left";
+  }
+}
+
+function drawInitialsBoxes(startX, boxY, boxSize, boxGap, name, highlightCurrent, peerStyle) {
+  ctx.textAlign = "center";
+  for (let i = 0; i < 3; i++) {
+    const x = startX + i * (boxSize + boxGap);
+    const current = highlightCurrent && i === name.length && name.length < 3;
+    ctx.fillStyle = "rgba(20,30,40,0.85)";
+    ctx.fillRect(x, boxY, boxSize, boxSize);
+    ctx.strokeStyle = current ? "#ffd34a" : (peerStyle ? "#3a5a7a" : "#4a7a9a");
+    ctx.lineWidth = current ? 2 : 1;
+    ctx.strokeRect(x + 0.5, boxY + 0.5, boxSize, boxSize);
+    if (i < name.length) {
+      const ch = name[i];
+      ctx.fillStyle = peerStyle ? "#9bd" : "#cfd";
+      ctx.font = "bold 32px 'Libertinus Mono', monospace";
+      const m = ctx.measureText(ch);
+      const asc = m.actualBoundingBoxAscent;
+      const dsc = m.actualBoundingBoxDescent;
+      const letterY = boxY + boxSize / 2 + (asc - dsc) / 2;
+      ctx.fillText(ch, x + boxSize / 2, letterY);
+    }
+  }
   ctx.textAlign = "left";
 }
 
@@ -1253,41 +1692,23 @@ function drawLeaderboardScene() {
   ctx.fillText("SIGNAL LOST", W / 2, 60);
   ctx.fillStyle = "#ccd";
   ctx.font = "20px 'Libertinus Mono', monospace";
-  ctx.fillText("Score: " + score, W / 2, 92);
+  const headLine = gameMode === "coop" ? "Total: " + score : "Score: " + score;
+  ctx.fillText(headLine, W / 2, 92);
 
-  const boxX = W / 2 - 220, boxY = 130, boxW = 440, boxH = 400;
-  ctx.fillStyle = "rgba(30,50,60,0.35)";
-  ctx.fillRect(boxX, boxY, boxW, boxH);
-  ctx.strokeStyle = "#4a7a9a";
-  ctx.lineWidth = 1;
-  ctx.strokeRect(boxX + 0.5, boxY + 0.5, boxW, boxH);
-
-  ctx.fillStyle = "#cfd";
-  ctx.font = "bold 24px 'Libertinus Mono', monospace";
-  ctx.fillText("HIGH SCORES", W / 2, boxY + 34);
-
-  ctx.font = "20px 'Libertinus Mono', monospace";
-  if (!topScores) {
+  let boxY = 130;
+  if (gameMode === "coop") {
+    ctx.font = "16px 'Libertinus Mono', monospace";
     ctx.fillStyle = "#9ab";
-    ctx.fillText("loading…", W / 2, boxY + boxH / 2);
-  } else if (topScores.length === 0) {
-    ctx.fillStyle = "#9ab";
-    ctx.fillText("no scores yet", W / 2, boxY + boxH / 2);
-  } else {
-    ctx.textAlign = "left";
-    for (let i = 0; i < topScores.length; i++) {
-      const row = topScores[i];
-      const y = boxY + 72 + i * 30;
-      const mine = nameSubmitted && row.name === entryName && row.score === score;
-      ctx.fillStyle = mine ? "#ffd34a" : "#9ab";
-      ctx.fillText(String(i + 1).padStart(2, " ") + ".", boxX + 30, y);
-      ctx.fillStyle = mine ? "#ffd34a" : "#cfd";
-      ctx.fillText(row.name, boxX + 100, y);
-      ctx.textAlign = "right";
-      ctx.fillText(String(row.score), boxX + boxW - 30, y);
-      ctx.textAlign = "left";
-    }
+    ctx.fillText("You: " + coopOwnScore + "    Them: " + coopPeerScore,
+                 W / 2, 116);
+    boxY = 148;
   }
+
+  const list = gameMode === "coop" ? topCoopScores : topScores;
+  const title = gameMode === "coop" ? "CO-OP HIGH SCORES" : "HIGH SCORES";
+  const boxX = W / 2 - 240, boxW = 480;
+  const boxH = H - boxY - 90;
+  drawScoreboardBox(title, boxX, boxY, boxW, boxH, list, gameMode === "coop");
 
   ctx.textAlign = "left";
   drawButtons();
