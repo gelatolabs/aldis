@@ -121,9 +121,9 @@ function enemyInBeam(e) {
   if (lamp.beamTimer <= 0) return false;
   const ax = Math.cos(lamp.angle);
   const ay = Math.sin(lamp.angle);
-  const back = 20;  // matches LAMP_BACK_OFFSET in render.js
-  const bx = lamp.x - ax * back;
-  const by = lamp.y - ay * back;
+  const lensFwd = 28;
+  const bx = lamp.x + ax * lensFwd;
+  const by = lamp.y + ay * lensFwd;
   const dx = e.x - bx;
   const dy = e.y - by;
   const along = dx * ax + dy * ay;

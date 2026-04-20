@@ -6,9 +6,6 @@ const ENEMY_TYPES = {
   runner: { label: "Runner", w: 48, h: 48, wordList: WORDS_2, speedMul: 1.9 },
 };
 
-const lampImg = new Image();
-lampImg.src = "assets/lamp.png";
-
 function pickTypeKey() {
   const d = difficulty();
   const p0 = { fodder: 0.90, heavy: 0.05, runner: 0.05 };

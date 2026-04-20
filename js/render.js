@@ -582,21 +582,158 @@ function drawHealth() {
   ctx.strokeRect(x + 0.5, y + 0.5, barW, barH);
 }
 
+// Procedural lamp sprite: top-down radar antenna with signal lamp protruding
+// the dish. Stationary base with pivoting dish+lamp. Lens at local +22 aligns
+// with beamLensPos.
 function drawLamp() {
-  if (!lampImg.complete || lampImg.naturalWidth === 0) return;
-  const w = lampImg.naturalWidth;
-  const h = lampImg.naturalHeight;
+  // Stationary base
+  ctx.save();
+  ctx.translate(lamp.x, lamp.y);
+  ctx.fillStyle = "#2a3038";
+  ctx.fillRect(-13, -13, 26, 26);
+  ctx.fillStyle = "#404a55";
+  ctx.fillRect(-13, -13, 26, 2);
+  ctx.strokeStyle = "#1a1f24";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(-12.5, -12.5, 26, 26);
+  ctx.fillStyle = "#5a6470";
+  for (const [bx, by] of [[-9, -9], [9, -9], [-9, 9], [9, 9]]) {
+    ctx.beginPath();
+    ctx.arc(bx, by, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Mounting hub
+  ctx.beginPath();
+  ctx.arc(0, 0, 7, 0, Math.PI * 2);
+  ctx.fillStyle = "#1c2128";
+  ctx.fill();
+  ctx.strokeStyle = "#4a5260";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+
+  // Rotating arm
   ctx.save();
   ctx.translate(lamp.x, lamp.y);
   ctx.rotate(lamp.angle);
-  ctx.drawImage(lampImg, -w / 2, -h / 2);
+
+  // Pivot collar
+  ctx.beginPath();
+  ctx.arc(0, 0, 5, 0, Math.PI * 2);
+  ctx.fillStyle = "#3a424c";
+  ctx.fill();
+  ctx.strokeStyle = "#5a6470";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Yoke arm
+  ctx.fillStyle = "#3a424c";
+  ctx.fillRect(0, -3.5, 8, 7);
+  ctx.fillStyle = "#525c68";
+  ctx.fillRect(0, -3.5, 8, 1);
+
+  // Dish — back half-ellipse with concave rim
+  ctx.beginPath();
+  ctx.ellipse(15, 0, 13, 24, 0, Math.PI / 2, 3 * Math.PI / 2, false);
+  ctx.quadraticCurveTo(8, 0, 15, 24);
+  ctx.closePath();
+  // Radial gradient with off-centre highlight
+  const dishGrad = ctx.createRadialGradient(4, -6, 2, 9, 4, 28);
+  dishGrad.addColorStop(0,    "#8c98a6");
+  dishGrad.addColorStop(0.35, "#586270");
+  dishGrad.addColorStop(0.85, "#3a4350");
+  dishGrad.addColorStop(1,    "#262d36");
+  ctx.fillStyle = dishGrad;
+  ctx.fill();
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = "#7a8693";
+  ctx.beginPath();
+  ctx.ellipse(15, 0, 13, 24, 0, Math.PI / 2, 3 * Math.PI / 2, false);
+  ctx.quadraticCurveTo(8, 0, 15, 24);
+  ctx.stroke();
+  // Subtle dark stripe along inner concave rim
+  ctx.strokeStyle = "rgba(15, 20, 28, 0.55)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(15, -22);
+  ctx.quadraticCurveTo(9.5, 0, 15, 22);
+  ctx.stroke();
+
+  // Concentric mesh rings on the dish surface
+  ctx.lineWidth = 0.6;
+  ctx.strokeStyle = "rgba(120, 134, 150, 0.4)";
+  for (const k of [0.45, 0.75]) {
+    ctx.beginPath();
+    ctx.ellipse(15, 0, 13 * k, 24 * k, 0,
+                Math.PI / 2, 3 * Math.PI / 2, false);
+    ctx.stroke();
+  }
+
+  // Support struts from the dish to the lens
+  ctx.strokeStyle = "#5a6470";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(14, -20);
+  ctx.lineTo(27, -6);
+  ctx.moveTo(14,  20);
+  ctx.lineTo(27,  6);
+  ctx.stroke();
+  ctx.lineCap = "butt";
+
+  // Signal lamp body
+  ctx.beginPath();
+  pathRoundedRect(ctx, 13, -7, 15, 14, 3);
+  const bodyGrad = ctx.createLinearGradient(0, -7, 0, 7);
+  bodyGrad.addColorStop(0,    "#7a8493");
+  bodyGrad.addColorStop(0.45, "#586270");
+  bodyGrad.addColorStop(1,    "#3c4654");
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "#222831";
+  ctx.stroke();
+
+  // Lens collar
+  ctx.beginPath();
+  ctx.arc(28, 0, 7, 0, Math.PI * 2);
+  ctx.fillStyle = "#2a3038";
+  ctx.fill();
+  ctx.strokeStyle = "#5a6470";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Lens — lights up with beam
+  const bi = beamIntensity();
+  if (bi > 0) {
+    ctx.beginPath();
+    ctx.arc(28, 0, 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#946e2c";
+    ctx.fill();
+    const a = 0.35 + bi * 0.65;
+    const lensG = ctx.createRadialGradient(28, 0, 0, 28, 0, 9);
+    lensG.addColorStop(0,    `rgba(255, 252, 225, ${a})`);
+    lensG.addColorStop(0.5,  `rgba(255, 225, 140, ${a * 0.55})`);
+    lensG.addColorStop(1,    "rgba(255, 200, 80, 0)");
+    ctx.fillStyle = lensG;
+    ctx.beginPath();
+    ctx.arc(28, 0, 9, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.arc(28, 0, 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#3c4654";
+    ctx.fill();
+  }
+
   ctx.restore();
 }
 
 function drawAimLine() {
   const end = beamEndpoint(1600);
-  const sx = lamp.x + Math.cos(lamp.angle) * 22;
-  const sy = lamp.y + Math.sin(lamp.angle) * 22;
+  const sx = lamp.x + Math.cos(lamp.angle) * 28;
+  const sy = lamp.y + Math.sin(lamp.angle) * 28;
   ctx.save();
   ctx.strokeStyle = "rgba(200,200,210,0.28)";
   ctx.lineWidth = 1;
@@ -649,28 +786,18 @@ function beamIntensity() {
 
 function beamLensPos() {
   return {
-    x: lamp.x + Math.cos(lamp.angle) * 22,
-    y: lamp.y + Math.sin(lamp.angle) * 22,
-  };
-}
-
-// Origin used for the beam cone: the back of the lamp sprite, so the cone
-// converges behind the lamp and emerges through it with a bit of width.
-const LAMP_BACK_OFFSET = 20;
-function beamBackPos() {
-  return {
-    x: lamp.x - Math.cos(lamp.angle) * LAMP_BACK_OFFSET,
-    y: lamp.y - Math.sin(lamp.angle) * LAMP_BACK_OFFSET,
+    x: lamp.x + Math.cos(lamp.angle) * 28,
+    y: lamp.y + Math.sin(lamp.angle) * 28,
   };
 }
 
 // Beam rendering uses the pre-computed per-pixel masks. Rotating +
-// translating them to the back of the lamp does all the work — every pixel
-// already carries its physically motivated intensity.
+// translating them to the lens does all the work — every pixel already carries
+// its physically motivated intensity.
 function drawBeamLight() {
   const bi = beamIntensity();
   if (bi <= 0) return;
-  const { x: sx, y: sy } = beamBackPos();
+  const { x: sx, y: sy } = beamLensPos();
 
   // Ambient glow: warm-coloured RGBA, additively blended.
   ctx.save();

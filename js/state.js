@@ -54,7 +54,7 @@ let prevLampAngle = 0;
 // the beam-light renderer).
 const BEAM_LEN = 1500;
 const BEAM_HALF_WIDTH = 80;       // perpendicular half-width at full range
-const BEAM_NEAR_WIDTH = 12;       // near-field half-width at the lens
+const BEAM_NEAR_WIDTH = 8;        // near-field half-width at the lens
 const RADAR_FADE_MS = 1400;
 
 // Scene / screen state
