@@ -66,8 +66,10 @@ const LAST_LETTER_DISPLAY_MS = 350;
 
 let enemies = [];
 let spawnTimer = 3000;
+let freezeTimer = 0;
 let elapsed = 0;
 let animTime = 0;
+let enemyAnimTime = 0;    // paused during freeze powerup
 let windowFocused = true;
 let gameOver = false;
 let score = 0;

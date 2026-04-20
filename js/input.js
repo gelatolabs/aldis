@@ -288,6 +288,7 @@ function handleEnemyKill(enemy) {
     enemy.hitFlash = 160;
     enemy.morse = ""; enemy.morseTimer = 0;
     enemy.lastMorse = ""; enemy.lastTimer = 0;
+    playBounce();
     if (netInMatch()) {
       netSend({ type: "kill", id: enemy.id, points: 0,
                 replaceWith: { word: newWord, vx: newVx, x: enemy.x, y: enemy.y } });
@@ -305,7 +306,15 @@ function handleEnemyKill(enemy) {
     if (gameMode === "coop") coopOwnScore += pts;
   }
   spawnEnemyExplosion(enemy);
+  if (enemy.powerup) {
+    playPowerupKill(enemy.powerup);
+    applyPowerupEffect(enemy.powerup);
+  } else {
+    playExplosion(enemy.typeKey);
+  }
   if (gameMode === "coop" && netInMatch()) {
-    netSend({ type: "kill", id: enemy.id, points: pts });
+    const msg = { type: "kill", id: enemy.id, points: pts };
+    if (enemy.powerup === "heal") msg.missed = player.missed;
+    netSend(msg);
   }
 }

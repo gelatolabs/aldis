@@ -25,6 +25,10 @@ let coopFirstSubmitterRole = -1;
 let coopSecondPlayerDeadline = 0;  // performance.now() ms; 0 means not running
 const COOP_SECOND_PLAYER_TIMEOUT_MS = 30_000;
 let coopFinalSubmitted = false;
+// Set on the non-host client while it waits for the host to relay the final
+// leaderboard via "coopScores". Cancels the fallback GET if the relay
+// arrives in time.
+let coopFinalFetchPending = false;
 
 // When the game is opened from a file:// URL, use localStorage for an
 // offline leaderboard instead of the API.
@@ -143,6 +147,7 @@ function resetNameEntry() {
   coopFirstSubmitterRole = -1;
   coopSecondPlayerDeadline = 0;
   coopFinalSubmitted = false;
+  coopFinalFetchPending = false;
 }
 
 function qualifiesForTop10() {
@@ -270,7 +275,13 @@ function maybeFinalizeCoop() {
   // the local player isn't stranded.
   const peerGone = !netInMatch();
   if (!net.isHost && !peerGone) {
-    setTimeout(fetchTopCoopScores, 600);
+    coopFinalFetchPending = true;
+    setTimeout(() => {
+      if (coopFinalFetchPending) {
+        coopFinalFetchPending = false;
+        fetchTopCoopScores();
+      }
+    }, 3000);
     enterScene(SCENE.leaderboard);
     return;
   }
@@ -296,7 +307,12 @@ function submitTopCoopScore(name1, name2) {
     .then(r => r.ok ? r.json() : null)
     .catch(() => null)
     .then(data => {
-      if (Array.isArray(data)) topCoopScores = data;
+      if (Array.isArray(data)) {
+        topCoopScores = data;
+        if (typeof netSend === "function" && netInMatch()) {
+          netSend({ type: "coopScores", scores: data });
+        }
+      }
       enterScene(SCENE.leaderboard);
     });
 }

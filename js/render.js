@@ -283,23 +283,34 @@ function drawBackdrop(cx, cy) {
 function drawGame() {
   drawBackdrop(lamp.x, lamp.y);
 
-  drawAimLine();      // dashed reference line
+  drawAimLine();       // dashed reference line
   if (peerLamp.active) drawPeerAimLine();
-  drawBeamLight();    // illuminates backdrop and sprites within the cone
+  drawBeamLight();     // illuminates backdrop and sprites within the cone
   if (peerLamp.active) drawPeerBeamLight();
-  drawEnemyWords();   // words revealed by radar or partial illumination
-  drawDeathAnims();   // enemy death explosions
-  drawRadarDots();    // green dots on enemies revealed by radar
-  drawAlertDots();    // red flashing dots on enemies near the left edge
-  drawLamp();         // player sprite
+  drawEnemyWords();    // words revealed by radar or partial illumination
+  drawDeathAnims();    // enemy death explosions
+  drawRadarDots();     // green dots on enemies revealed by radar
+  drawAlertDots();     // red flashing dots on enemies near the left edge
+  drawLamp();          // player sprite
   if (peerLamp.active) drawPeerLamp();
-  drawInputBuffer();  // morse input over enemies
-  drawMorseChart();   // alphabet reference
-  drawHUD();          // game UI
-  drawHealth();       // health bar
+  drawInputBuffer();   // morse input over enemies
+  drawMorseChart();    // alphabet reference
+  drawHUD();           // game UI
+  drawHealth();        // health bar
   if (peerLamp.active && gameMode === "versus") drawPeerHealth();
+  drawFreezeOverlay(); // blue ice powerup overlay
   if (gameOver) drawGameOver();
   if (currentScene === SCENE.game) drawTutorialFade();
+}
+
+function drawFreezeOverlay() {
+  if (freezeTimer <= 0) return;
+  ctx.save();
+  const pulse = 0.10 + 0.04 * Math.sin(animTime * 0.005);
+  ctx.fillStyle = "rgba(140,200,255," + pulse.toFixed(3) + ")";
+  ctx.globalCompositeOperation = "lighter";
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
 }
 
 // ---- Splash ----
@@ -1325,7 +1336,7 @@ function drawAlertDots() {
     const rate = 0.5 + p * 0.7;
     const phase = (elapsed / 1000) * rate;
     if (Math.floor(phase) % 2 !== 0) continue;
-    alertPing(e.x, e.y, 0.75 + 0.25 * p);
+    alertPing(e.x, e.y, 0.75 + 0.25 * p, !!e.powerup);
   }
 }
 
@@ -1352,18 +1363,25 @@ function alertDanger(e) {
   return Math.max(0, Math.min(1, 1 - dist / span));
 }
 
-function alertPing(x, y, alpha) {
+function alertPing(x, y, alpha, blue) {
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
   const outer = ctx.createRadialGradient(x, y, 0, x, y, 30);
-  outer.addColorStop(0,    `rgba(255,120,120,${0.9 * alpha})`);
-  outer.addColorStop(0.3,  `rgba(255,60,60,${0.5 * alpha})`);
-  outer.addColorStop(1,    "rgba(255,0,0,0)");
+  if (blue) {
+    outer.addColorStop(0,   `rgba(140,190,255,${0.9 * alpha})`);
+    outer.addColorStop(0.3, `rgba(70,140,245,${0.5 * alpha})`);
+    outer.addColorStop(1,   "rgba(40,100,220,0)");
+  } else {
+    outer.addColorStop(0,   `rgba(255,120,120,${0.9 * alpha})`);
+    outer.addColorStop(0.3, `rgba(255,60,60,${0.5 * alpha})`);
+    outer.addColorStop(1,   "rgba(255,0,0,0)");
+  }
   ctx.fillStyle = outer;
   ctx.beginPath();
   ctx.arc(x, y, 30, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = `rgba(255,230,230,${alpha})`;
+  ctx.fillStyle = blue ? `rgba(230,240,255,${alpha})`
+                       : `rgba(255,230,230,${alpha})`;
   ctx.beginPath();
   ctx.arc(x, y, 4, 0, Math.PI * 2);
   ctx.fill();

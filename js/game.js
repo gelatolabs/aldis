@@ -46,6 +46,7 @@ function frame(now) {
   if (!windowFocused && !netInMatch()) dt = 0;
   sceneTime += dt;
   animTime += dt;
+  if (freezeTimer <= 0) enemyAnimTime += dt;
 
   if (currentScene === SCENE.splash && sceneTime >= SPLASH_TOTAL) {
     enterScene(SCENE.menu);
@@ -125,19 +126,22 @@ function update(dt) {
 }
 
 function updateSurvival(dt) {
+  if (freezeTimer > 0) freezeTimer = Math.max(0, freezeTimer - dt);
   spawnTimer -= dt;
   if (spawnTimer <= 0) {
     spawnEnemy();
     spawnTimer = spawnInterval();
   }
+  const frozen = freezeTimer > 0;
   for (const e of enemies) {
     if (e.alive) {
-      e.x += e.vx * (dt / 1000);
+      if (!frozen) e.x += e.vx * (dt / 1000);
       if (e.hitFlash > 0) e.hitFlash -= dt;
       if (e.x < 40) {
         e.alive = false;
-        if (!debug.invuln) {
+        if (!debug.invuln && !e.powerup) {
           player.missed += 1;
+          playDamage();
           if (player.missed >= player.maxHealth) {
             gameOver = true;
             fetchTopScores();
@@ -152,6 +156,7 @@ function updateSurvival(dt) {
 }
 
 function updateCoop(dt) {
+  if (freezeTimer > 0) freezeTimer = Math.max(0, freezeTimer - dt);
   // Host spawns; peer waits for "spawn" messages.
   if (net.isHost) {
     spawnTimer -= dt;
@@ -161,15 +166,17 @@ function updateCoop(dt) {
     }
   }
 
+  const frozen = freezeTimer > 0;
   for (const e of enemies) {
     if (e.alive) {
-      e.x += e.vx * (dt / 1000);
+      if (!frozen) e.x += e.vx * (dt / 1000);
       if (e.hitFlash > 0) e.hitFlash -= dt;
       // Only the host applies misses → broadcast → both clients react.
       if (net.isHost && e.x < 40) {
         e.alive = false;
-        if (!debug.invuln) {
+        if (!debug.invuln && !e.powerup) {
           player.missed += 1;
+          playDamage();
           netSend({ type: "miss", id: e.id, missed: player.missed });
           if (player.missed >= player.maxHealth) {
             gameOver = true;
@@ -204,6 +211,7 @@ function updateVersus(dt) {
         e.alive = false;
         if (!debug.invuln) {
           player.missed += 1;
+          playDamage();
           netSend({ type: "hpHit", role: net.role, missed: player.missed,
                     y: e.y });
           if (net.isHost) {
@@ -223,6 +231,30 @@ function updateVersus(dt) {
   enemies = enemies.filter(e => (e.alive) || (e.deathAnim && e.deathAnim > 0));
 }
 
+// ---- Powerups ----
+//
+// Applied locally on both clients when a powerup is collected. Each client
+// mutates its own state so the effect is consistent without needing a
+// dedicated network message.
+
+const POWERUP_FREEZE_MS = 12000;
+
+function applyPowerupEffect(kind) {
+  if (kind === "freeze") {
+    freezeTimer = POWERUP_FREEZE_MS;
+  } else if (kind === "clear") {
+    for (const e of enemies) {
+      if (!e.alive || e.powerup) continue;
+      e.alive = false;
+      e.deathAnim = 400;
+      spawnEnemyExplosion(e);
+    }
+  } else if (kind === "heal") {
+    player.missed = Math.max(0, player.missed - 1);
+    if (gameMode === "coop") peerPlayer.missed = player.missed;
+  }
+}
+
 // ---- Spawning helpers (multiplayer) ----
 
 function spawnCoopEnemy() {
@@ -236,6 +268,7 @@ function spawnCoopEnemy() {
     type: "spawn",
     id: e.id, typeKey: e.typeKey, word: e.word,
     x: e.x, y: e.y, vx: e.vx, seed: e.seed,
+    powerup: e.powerup || null,
   });
 }
 
@@ -360,11 +393,14 @@ function handlePeerMessage(msg) {
 
     case "spawn": {
       // Peer applies host-authoritative spawns verbatim.
+      const powerup = (msg.powerup === "clear" || msg.powerup === "freeze"
+                    || msg.powerup === "heal") ? msg.powerup : null;
       const e = {
         id: msg.id | 0,
         x: +msg.x, y: +msg.y, vx: +msg.vx,
         word: String(msg.word || ""),
         typeKey: msg.typeKey === "heavy" || msg.typeKey === "runner" ? msg.typeKey : "fodder",
+        powerup,
         typed: 0, alive: true, hitFlash: 0, deathAnim: 0,
         radarActive: false, radarFade: 0, radarX: 0, radarY: 0,
         seed: msg.seed | 0,
@@ -388,6 +424,18 @@ function handlePeerMessage(msg) {
           coopPeerScore += pts;
         }
         spawnEnemyExplosion(e);
+        if (e.powerup) {
+          playPowerupKill(e.powerup);
+          if (e.powerup === "heal" && typeof msg.missed === "number") {
+            // Trust the killer's post-heal value.
+            player.missed = Math.max(0, msg.missed | 0);
+            peerPlayer.missed = player.missed;
+          } else {
+            applyPowerupEffect(e.powerup);
+          }
+        } else {
+          playExplosion(e.typeKey);
+        }
       } else if (gameMode === "versus" && msg.replaceWith) {
         // Bounce: same enemy gets a new word + reversed velocity.
         e.word = String(msg.replaceWith.word || e.word);
@@ -398,6 +446,7 @@ function handlePeerMessage(msg) {
         e.morse = ""; e.morseTimer = 0;
         e.lastMorse = ""; e.lastTimer = 0;
         e.hitFlash = 160;
+        playBounce();
       }
       break;
     }
@@ -410,6 +459,7 @@ function handlePeerMessage(msg) {
         player.missed = Math.max(player.missed, msg.missed | 0);
         peerPlayer.missed = player.missed;  // shared HP
       }
+      playDamage();
       break;
     }
 
@@ -444,6 +494,14 @@ function handlePeerMessage(msg) {
     case "skip":
       recordPeerCoopSkip();
       break;
+    case "coopScores":
+      // Host relays the authoritative leaderboard after its POST response
+      // so the peer doesn't have to race a GET against write propagation.
+      if (Array.isArray(msg.scores)) {
+        topCoopScores = msg.scores;
+        coopFinalFetchPending = false;  // cancel fallback GET
+      }
+      break;
 
     case "snapshot": {
       // Authoritative position update from the host. Applies cleanly even
@@ -462,7 +520,8 @@ function handlePeerMessage(msg) {
       }
       if (gameMode === "coop") {
         if (typeof msg.missed === "number") {
-          player.missed = Math.max(player.missed, msg.missed | 0);
+          // Host is authoritative for missed.
+          player.missed = msg.missed | 0;
           peerPlayer.missed = player.missed;
         }
         if (typeof msg.score === "number") {
@@ -692,6 +751,8 @@ function resetGame() {
   lastLetterMorse = "";
   lastLetterTimer = 0;
   spawnTimer = 3000;
+  freezeTimer = 0;
+  enemyAnimTime = 0;
   elapsed = 0;
   gameOver = false;
   versusWon = false;

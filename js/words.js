@@ -27,6 +27,12 @@ const WORD_LIST = {
   ],
 };
 
+const POWERUP_WORDS = {
+  clear: ["ANNIHILATE", "APOCALYPSE", "ARMAGEDDON", "EXTINCTION", "OBLITERATE"],
+  freeze: ["AVALANCHE", "CRYOGENIC", "FROSTBITE", "SNOWSTORM", "WINTERIZE"],
+  heal: ["ANTIDOTE", "FIRSTAID", "LIFELINE", "MEDICINE", "RECOVERY"],
+};
+
 function wordsOfLengths(lengths) {
   const out = [];
   for (const L of lengths) if (WORD_LIST[L]) out.push(...WORD_LIST[L]);

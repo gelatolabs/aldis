@@ -23,18 +23,39 @@ function pickTypeKey() {
 
 function makeEnemySeed() { return Math.floor(Math.random() * 2_000_000_000); }
 
+const POWERUP_CHANCE = 0.10;
+const POWERUP_SPEED_MUL = 1.25;
+const POWERUP_KINDS = ["clear", "freeze", "heal"];
+
+function pickPowerupKind() {
+  if (gameMode !== "survival" && gameMode !== "coop") return null;
+  if (Math.random() >= POWERUP_CHANCE) return null;
+  return POWERUP_KINDS[Math.floor(Math.random() * POWERUP_KINDS.length)];
+}
+
 function spawnEnemy() {
-  const typeKey = pickTypeKey();
+  const powerup = pickPowerupKind();
+  let typeKey, word;
+  if (powerup) {
+    typeKey = "fodder";
+    const list = POWERUP_WORDS[powerup];
+    word = list[Math.floor(Math.random() * list.length)];
+  } else {
+    typeKey = pickTypeKey();
+    const t = ENEMY_TYPES[typeKey];
+    word = t.wordList[Math.floor(Math.random() * t.wordList.length)];
+  }
   const type = ENEMY_TYPES[typeKey];
-  const word = type.wordList[Math.floor(Math.random() * type.wordList.length)];
   const margin = 80;
   const y = margin + Math.random() * (H - 2 * margin);
+  const speedMul = type.speedMul * (powerup ? POWERUP_SPEED_MUL : 1);
   enemies.push({
     x: W + 40,
     y,
-    vx: -baseSpeed() * type.speedMul,
+    vx: -baseSpeed() * speedMul,
     word,
     typeKey,
+    powerup: powerup || null,
     typed: 0,
     alive: true,
     hitFlash: 0,
@@ -308,7 +329,7 @@ function enemyDesign(e) {
 function enemyWalkPhase(e) {
   const speed = Math.abs(e.vx);
   const seedOff = ((e.seed || 0) % 997) / 997 * Math.PI * 2;
-  return seedOff + (animTime / 1000) * 2 * Math.PI * speed / STRIDE_PX;
+  return seedOff + (enemyAnimTime / 1000) * 2 * Math.PI * speed / STRIDE_PX;
 }
 
 function shadedFill(c, cx, cy, rx, ry, color, L, z) {
@@ -407,6 +428,7 @@ function drawLimb(c, ox, oy, limb, phase, ampMul, fillOverride, restPose) {
 }
 
 function drawEnemySprite(c, e) {
+  if (e.powerup) { drawPowerupSprite(c, e); return; }
   const d = enemyDesign(e);
   const sx = e.x, sy = e.y;
   const phase = enemyWalkPhase(e);
@@ -455,6 +477,7 @@ function drawEnemySprite(c, e) {
 // `oy` (with bob) so the projected shadow is one cohesive animated shape with
 // no gaps between body and legs.
 function drawEnemySilhouette(c, e, color, dx, dy) {
+  if (e.powerup) { drawPowerupSilhouette(c, e, color, dx, dy); return; }
   const d = enemyDesign(e);
   const sx = e.x + (dx || 0), sy = e.y + (dy || 0);
   const phase = enemyWalkPhase(e);
@@ -466,11 +489,323 @@ function drawEnemySilhouette(c, e, color, dx, dy) {
   for (const arm of d.arms) drawLimb(c, sx, oy, arm, phase, d.strideAmp, color);
 }
 
+// ---- Powerup sprites ----
+
+function bombBob(e) {
+  const t = enemyAnimTime * 0.004;
+  return Math.sin(t + (e.seed & 0xff) * 0.1) * 1.8;
+}
+
+function heartScale(e) {
+  const t = enemyAnimTime * 0.008;
+  // Two-beat waveform so it reads as a pulse rather than a sine bob.
+  const phase = (t + (e.seed & 0xff) * 0.1) % (Math.PI * 2);
+  const beat = Math.max(0, Math.sin(phase)) + 0.6 * Math.max(0, Math.sin(phase * 2));
+  return 1 + beat * 0.08;
+}
+
+// Heart outline with two cubic Beziers.
+function tracePath(c, points) {
+  c.beginPath();
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (i === 0) c.moveTo(p[0], p[1]);
+    else if (p[0] === "bez") c.bezierCurveTo(p[1], p[2], p[3], p[4], p[5], p[6]);
+    else c.lineTo(p[0], p[1]);
+  }
+  c.closePath();
+}
+
+function traceHeart(c, sx, sy, r) {
+  const w     = r * 1.05;       // half-width at the widest point
+  const topY  = sy - r * 0.85;  // vertical centre of each lobe
+  const cleft = sy - r * 0.2;   // V between the lobes
+  const botY  = sy + r * 1.55;  // tip
+  c.beginPath();
+  c.moveTo(sx, cleft);
+  // Left lobe: up and outward, then down to the left flank.
+  c.bezierCurveTo(sx - w * 0.18, topY - r * 0.4,
+                  sx - w,        topY - r * 0.55,
+                  sx - w,        topY);
+  // Left flank down to the tip.
+  c.bezierCurveTo(sx - w,        topY + r * 0.55,
+                  sx - w * 0.3,  botY - r * 0.35,
+                  sx,            botY);
+  // Right flank back up.
+  c.bezierCurveTo(sx + w * 0.3,  botY - r * 0.35,
+                  sx + w,        topY + r * 0.55,
+                  sx + w,        topY);
+  // Right lobe back to the cleft.
+  c.bezierCurveTo(sx + w,        topY - r * 0.55,
+                  sx + w * 0.18, topY - r * 0.4,
+                  sx,            cleft);
+  c.closePath();
+}
+
+function traceCube(c, sx, sy, s, d) {
+  // Assembles all six visible edges of a cube (front face + top + right)
+  // into a single path. `d` is the depth offset.
+  const L = sx - s, R = sx + s, T = sy - s, B = sy + s;
+  c.beginPath();
+  // Outer silhouette: front-bottom-left → along front → right edge → down-back
+  // right → back-bottom → etc. Trace the six outer edges.
+  c.moveTo(L,     B);
+  c.lineTo(R,     B);
+  c.lineTo(R + d, B - d);
+  c.lineTo(R + d, T - d);
+  c.lineTo(L + d, T - d);
+  c.lineTo(L,     T);
+  c.closePath();
+}
+
+function drawBombSprite(c, sx, sy, bob) {
+  const r = 14;
+  const y = sy + (bob || 0);
+  c.save();
+  // Fuse string.
+  c.strokeStyle = "#8a6a3c";
+  c.lineWidth = 2;
+  c.lineCap = "round";
+  c.beginPath();
+  c.moveTo(sx + 4, y - r + 2);
+  c.quadraticCurveTo(sx + 10, y - r - 6, sx + 12, y - r - 10);
+  c.stroke();
+  // Body: dark sphere with highlight. Drawn before the spark so the glow sits on top.
+  const g = c.createRadialGradient(sx - r * 0.4, y - r * 0.4, 1,
+                                   sx, y, r);
+  g.addColorStop(0, "#4a4a4a");
+  g.addColorStop(0.5, "#222");
+  g.addColorStop(1, "#0a0a0a");
+  c.fillStyle = g;
+  c.beginPath();
+  c.arc(sx, y, r, 0, Math.PI * 2);
+  c.fill();
+  // Animated spark. The outer glow and inner core share the same center.
+  const spark = (Math.sin(enemyAnimTime * 0.03) + 1) * 0.5;
+  c.fillStyle = "rgba(255,220,120," + (0.6 + 0.4 * spark).toFixed(3) + ")";
+  c.beginPath();
+  c.arc(sx + 12, y - r - 10, 2.2 + spark * 1.2, 0, Math.PI * 2);
+  c.fill();
+  c.fillStyle = "rgba(255,160,60,0.9)";
+  c.beginPath();
+  c.arc(sx + 12, y - r - 10, 1.2, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+}
+
+function drawIceCubeSprite(c, sx, sy, seed) {
+  const s = 12;
+  const d = 6;   // depth of the 3D projection
+  const rng = makeRng(seed || 1);
+  c.save();
+
+  // Front face.
+  const frontG = c.createLinearGradient(sx - s, sy - s, sx + s, sy + s);
+  frontG.addColorStop(0.00, "rgba(160,200,230,0.95)");
+  frontG.addColorStop(0.40, "rgba(110,170,210,0.92)");
+  frontG.addColorStop(0.75, "rgba(70,135,180,0.92)");
+  frontG.addColorStop(1.00, "rgba(40,95,145,0.92)");
+  c.fillStyle = frontG;
+  c.fillRect(sx - s, sy - s, s * 2, s * 2);
+
+  // Cloudy blobs.
+  c.save();
+  c.globalCompositeOperation = "lighter";
+  c.beginPath();
+  c.rect(sx - s, sy - s, s * 2, s * 2);
+  c.clip();
+  for (let i = 0; i < 3; i++) {
+    const cx = sx - s + rng() * (s * 2);
+    const cy = sy - s + rng() * (s * 2);
+    const cr = 3.5 + rng() * 3.5;
+    const rg = c.createRadialGradient(cx, cy, 0, cx, cy, cr);
+    rg.addColorStop(0, "rgba(255,255,255,0.28)");
+    rg.addColorStop(1, "rgba(255,255,255,0)");
+    c.fillStyle = rg;
+    c.fillRect(cx - cr, cy - cr, cr * 2, cr * 2);
+  }
+  c.restore();
+
+  // Top face.
+  const topG = c.createLinearGradient(sx - s, sy - s, sx + s, sy - s - d);
+  topG.addColorStop(0, "rgba(180,215,235,0.96)");
+  topG.addColorStop(1, "rgba(135,190,220,0.94)");
+  c.fillStyle = topG;
+  c.beginPath();
+  c.moveTo(sx - s,     sy - s);
+  c.lineTo(sx - s + d, sy - s - d);
+  c.lineTo(sx + s + d, sy - s - d);
+  c.lineTo(sx + s,     sy - s);
+  c.closePath();
+  c.fill();
+
+  // Right face.
+  const rightG = c.createLinearGradient(sx + s, sy - s, sx + s + d, sy + s);
+  rightG.addColorStop(0, "rgba(90,150,190,0.92)");
+  rightG.addColorStop(1, "rgba(45,105,155,0.92)");
+  c.fillStyle = rightG;
+  c.beginPath();
+  c.moveTo(sx + s,     sy - s);
+  c.lineTo(sx + s + d, sy - s - d);
+  c.lineTo(sx + s + d, sy + s - d);
+  c.lineTo(sx + s,     sy + s);
+  c.closePath();
+  c.fill();
+
+  // Cracks.
+  c.save();
+  c.beginPath();
+  c.rect(sx - s, sy - s, s * 2, s * 2);
+  c.clip();
+  c.strokeStyle = "rgba(240,250,255,0.85)";
+  c.lineWidth = 0.8;
+  c.lineCap = "round";
+  for (let i = 0; i < 3; i++) {
+    const x0 = sx - s + rng() * (s * 2);
+    const y0 = sy - s + rng() * (s * 2);
+    const ang = rng() * Math.PI * 2;
+    const len = 3 + rng() * 4;
+    const x1 = x0 + Math.cos(ang) * len;
+    const y1 = y0 + Math.sin(ang) * len;
+    const x2 = x1 + Math.cos(ang + (rng() - 0.5) * 1.4) * (len * 0.7);
+    const y2 = y1 + Math.sin(ang + (rng() - 0.5) * 1.4) * (len * 0.7);
+    c.beginPath();
+    c.moveTo(x0, y0);
+    c.lineTo(x1, y1);
+    c.lineTo(x2, y2);
+    c.stroke();
+  }
+  // Frost speckle.
+  c.fillStyle = "rgba(255,255,255,0.85)";
+  for (let i = 0; i < 6; i++) {
+    const fx = sx - s + rng() * (s * 2);
+    const fy = sy - s + rng() * (s * 2);
+    c.fillRect(fx, fy, 1, 1);
+  }
+  c.restore();
+
+  // Seams between faces.
+  c.lineWidth = 1;
+  c.strokeStyle = "rgba(30,70,110,0.8)";
+  c.beginPath();
+  c.moveTo(sx - s, sy - s);
+  c.lineTo(sx + s, sy - s);
+  c.moveTo(sx + s, sy - s);
+  c.lineTo(sx + s, sy + s);
+  c.stroke();
+
+  // Outer silhouette.
+  c.lineWidth = 1.4;
+  c.strokeStyle = "rgba(25,65,100,0.95)";
+  traceCube(c, sx, sy, s, d);
+  c.stroke();
+
+  // Specular glint.
+  const glintX = sx - s * 0.55, glintY = sy - s * 0.55;
+  const glintG = c.createRadialGradient(glintX, glintY, 0, glintX, glintY, 3.2);
+  glintG.addColorStop(0, "rgba(255,255,255,0.8)");
+  glintG.addColorStop(1, "rgba(255,255,255,0)");
+  c.fillStyle = glintG;
+  c.fillRect(glintX - 4, glintY - 4, 8, 8);
+  c.fillStyle = "rgba(255,255,255,0.85)";
+  c.beginPath();
+  c.arc(glintX, glintY, 0.8, 0, Math.PI * 2);
+  c.fill();
+
+  c.restore();
+}
+
+function drawHeartSprite(c, sx, sy, scale) {
+  const r = 8 * (scale || 1);
+  c.save();
+  const g = c.createRadialGradient(sx - 3, sy - 4, 1, sx, sy, r * 2.2);
+  g.addColorStop(0, "#ff9aa8");
+  g.addColorStop(0.6, "#e03040");
+  g.addColorStop(1, "#801018");
+  c.fillStyle = g;
+  c.strokeStyle = "#400810";
+  c.lineWidth = 1.5;
+  c.lineJoin = "round";
+  traceHeart(c, sx, sy, r);
+  c.fill();
+  c.stroke();
+  // Highlight on the upper-left lobe.
+  c.fillStyle = "rgba(255,200,210,0.55)";
+  c.beginPath();
+  c.ellipse(sx - r * 0.55, sy - r * 0.15, r * 0.35, r * 0.22,
+            -0.4, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+}
+
+function drawPowerupSprite(c, e) {
+  if (e.powerup === "clear") {
+    const bob = bombBob(e);
+    drawBombSprite(c, e.x, e.y, bob);
+    if (e.hitFlash > 0) powerupHitFlash(c, e, bob);
+  } else if (e.powerup === "freeze") {
+    drawIceCubeSprite(c, e.x, e.y, e.seed);
+    if (e.hitFlash > 0) powerupHitFlash(c, e, 0);
+  } else if (e.powerup === "heal") {
+    const scale = heartScale(e);
+    drawHeartSprite(c, e.x, e.y, scale);
+    if (e.hitFlash > 0) powerupHitFlash(c, e, 0);
+  }
+}
+
+function powerupHitFlash(c, e, bob) {
+  c.save();
+  c.globalAlpha = Math.min(0.65, e.hitFlash / 200);
+  c.fillStyle = "#fff7aa";
+  if (e.powerup === "heal") {
+    const scale = heartScale(e);
+    traceHeart(c, e.x, e.y, 8 * scale + 2);
+    c.fill();
+  } else if (e.powerup === "freeze") {
+    traceCube(c, e.x, e.y, 14, 6);
+    c.fill();
+  } else {
+    c.beginPath();
+    c.arc(e.x, e.y + bob, 16, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.restore();
+}
+
+function drawPowerupSilhouette(c, e, color, dx, dy) {
+  const sx = e.x + (dx || 0), sy = e.y + (dy || 0);
+  c.save();
+  c.fillStyle = color;
+  if (e.powerup === "clear") {
+    const bob = bombBob(e);
+    c.beginPath();
+    c.arc(sx, sy + bob, 14, 0, Math.PI * 2);
+    c.fill();
+    c.strokeStyle = color;
+    c.lineWidth = 2;
+    c.lineCap = "round";
+    c.beginPath();
+    c.moveTo(sx + 4, sy - 14 + bob + 2);
+    c.quadraticCurveTo(sx + 10, sy - 14 + bob - 6,
+                       sx + 12, sy - 14 + bob - 10);
+    c.stroke();
+  } else if (e.powerup === "freeze") {
+    traceCube(c, sx, sy, 12, 6);
+    c.fill();
+  } else if (e.powerup === "heal") {
+    const scale = heartScale(e);
+    traceHeart(c, sx, sy, 8 * scale);
+    c.fill();
+  }
+  c.restore();
+}
+
 // ---- Death explosion ----
 
 let particles = [];
 
 function spawnEnemyExplosion(e) {
+  if (e.powerup) { spawnPowerupExplosion(e); return; }
   const d = enemyDesign(e);
   const sx = e.x, sy = e.y;
   const phase = enemyWalkPhase(e);
@@ -569,6 +904,51 @@ function spawnEnemyExplosion(e) {
       c.arc(0, 0, r * 0.55, 0, Math.PI * 2);
       c.fill();
     }, { speed: 110 + Math.random() * 90, spin: 16 });
+  }
+}
+
+// Powerup enemies shatter into polygonal shards in their palette.
+const POWERUP_PALETTES = {
+  clear:  ["#151515", "#333333", "#ff7a28", "#ffb060", "#ffe090"],
+  freeze: ["#eaf6ff", "#ffffff", "#a8dcf8", "#78c0e8", "#b8e0f0"],
+  heal:   ["#ff5d7d", "#ff93a6", "#ffc0cf", "#d0304a", "#ffffff"],
+};
+
+function spawnPowerupExplosion(e) {
+  const palette = POWERUP_PALETTES[e.powerup] || POWERUP_PALETTES.clear;
+  const sx = e.x, sy = e.y;
+  const count = 24;
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 95 + Math.random() * 140;
+    const size = 4 + Math.random() * 5;
+    const sides = 3 + Math.floor(Math.random() * 3);  // 3–5
+    const color = palette[Math.floor(Math.random() * palette.length)];
+    const rot = Math.random() * Math.PI * 2;
+    particles.push({
+      x: sx, y: sy,
+      vx: Math.cos(angle) * speed + (e.vx || 0) * 0.25,
+      vy: Math.sin(angle) * speed - 60,
+      gravity: 220,
+      drag: 0.5,
+      rot,
+      rotV: (Math.random() - 0.5) * 14,
+      life: 0,
+      maxLife: 700 + Math.random() * 500,
+      draw: (c) => {
+        c.fillStyle = color;
+        c.beginPath();
+        for (let k = 0; k < sides; k++) {
+          const a = (k / sides) * Math.PI * 2;
+          const px = Math.cos(a) * size;
+          const py = Math.sin(a) * size;
+          if (k === 0) c.moveTo(px, py);
+          else c.lineTo(px, py);
+        }
+        c.closePath();
+        c.fill();
+      },
+    });
   }
 }
 
