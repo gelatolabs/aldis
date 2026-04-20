@@ -137,6 +137,8 @@ canvas.addEventListener("mousedown", (e) => {
     }
   }
 
+  if (currentScene === SCENE.menu && sceneTime < 1000) return;
+
   for (const btn of currentButtons()) {
     if (buttonHit(btn, x, y)) { btn.action(); return; }
   }
