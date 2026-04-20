@@ -250,10 +250,12 @@ function baseSpeed() {
 }
 
 function difficulty() {
-  return Math.min(1, elapsed / 720000);
+  const t = Math.min(1, elapsed / 600000);
+  return Math.log1p(9 * t) / Math.log(10);
 }
 
 function spawnInterval() {
   const d = difficulty();
-  return 7500 - 4000 * d + Math.random() * 1000;
+  const floor = (gameMode === "coop" || gameMode === "versus") ? 3000 : 5000;
+  return 7500 - (7500 - floor) * d + Math.random() * 1000;
 }

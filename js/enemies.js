@@ -8,8 +8,8 @@ const ENEMY_TYPES = {
 
 function pickTypeKey() {
   const d = difficulty();
-  const p0 = { fodder: 0.90, heavy: 0.05, runner: 0.05 };
-  const p1 = { fodder: 0.35, heavy: 0.35, runner: 0.30 };
+  const p0 = { fodder: 1.00, heavy: 0.00, runner: 0.00 };
+  const p1 = { fodder: 0.45, heavy: 0.30, runner: 0.25 };
   const keys = ["fodder", "heavy", "runner"];
   const weights = keys.map(k => p0[k] * (1 - d) + p1[k] * d);
   const total = weights.reduce((a, b) => a + b, 0);

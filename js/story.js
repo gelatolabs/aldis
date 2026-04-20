@@ -18,9 +18,19 @@ const STORY_STAGES = [
 ];
 
 const STORY_FADE_MS    = 400;
-const STORY_CHAR_MS    = 35;      // per-character reveal rate for text stages
-const STORY_SPAWN_MS   = 4000;    // interval between scripted enemy spawns
-const STORY_POST_MS    = 1000;    // delay after last defeat before next stage
+const STORY_CHAR_MS    = 35;       // per-character reveal rate for text stages
+const STORY_SPAWN_START_MS = 4000; // spawn interval on the first gameplay stage
+const STORY_SPAWN_STEP_MS  = 500;  // how much faster each subsequent stage spawns
+const STORY_SPAWN_MIN_MS   = 1000; // floor for the per-stage spawn interval
+const STORY_POST_MS    = 1000;     // delay after last defeat before next stage
+
+function storySpawnInterval() {
+  let n = 0;
+  for (let i = 0; i <= story.index; i++) {
+    if (STORY_STAGES[i] && STORY_STAGES[i].type === "gameplay") n++;
+  }
+  return Math.max(STORY_SPAWN_MIN_MS, STORY_SPAWN_START_MS - (n - 1) * STORY_SPAWN_STEP_MS);
+}
 
 const story = {
   active: false,
@@ -168,7 +178,7 @@ function updateStory(dt) {
     if (story.spawnTimer <= 0) {
       const idx = story.stageQueue.shift();
       spawnStoryEnemy(idx);
-      story.spawnTimer = STORY_SPAWN_MS;
+      story.spawnTimer = storySpawnInterval();
     }
   }
 
