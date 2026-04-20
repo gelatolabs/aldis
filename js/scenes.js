@@ -308,5 +308,14 @@ function setSliderFromX(s, x) {
 // ----- Credits -----
 
 const CREDITS_LINES = [
+  "ALDIS",
+  "A Gelato Labs production for Ludum Dare 59",
   "",
+  "The Gelato Labs \"G-Team\" for LD59 is:",
+  "kfarwell - Programming, procedural art & sound",
+  "lduser125 - Writing",
+  "",
+  "Font: Libertinus Mono (by Philipp H. Poll, SIL Open Font License v1.1)",
+  "",
+  "www.gelatolabs.xyz"
 ];
