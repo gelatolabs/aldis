@@ -197,10 +197,15 @@ function updateStory(dt) {
 }
 
 // Extra pause (ms) after revealing a punctuation character, on top of the
-// normal per-character delay.
-function charPauseAfter(ch) {
-  if (ch === "." || ch === "!" || ch === "?") return 200;
+// normal per-character delay. "Jr." is an exception.
+function charPauseAfter(text, idx) {
+  const ch = text[idx];
+  if (ch === "!" || ch === "?") return 200;
   if (ch === "," || ch === ";" || ch === ":") return 100;
+  if (ch === ".") {
+    if (idx >= 2 && text[idx - 2] === "J" && text[idx - 1] === "r") return 0;
+    return 200;
+  }
   return 0;
 }
 
@@ -221,8 +226,8 @@ function updateStoryText(dt) {
       const ch = stage.content[story.textShown];
       const pitchMul = charInExclamatoryWord(stage.content, story.textShown) ? 1.18 : 1;
       playAnimalese(ch, pitchMul);
+      story.textCharTimer += STORY_CHAR_MS + charPauseAfter(stage.content, story.textShown);
       story.textShown += 1;
-      story.textCharTimer += STORY_CHAR_MS + charPauseAfter(ch);
     }
   }
   updateStoryFade(dt);
