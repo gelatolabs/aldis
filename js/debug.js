@@ -7,6 +7,7 @@ const debug = {
   invuln: false,
   lamp: false,
   freezeDiff: false,
+  fastSpawn: false,
 };
 
 const debugHud      = document.getElementById("debug-hud");
@@ -16,6 +17,7 @@ const dbgEnd        = document.getElementById("dbg-end");
 const dbgInvuln     = document.getElementById("dbg-invuln");
 const dbgLamp       = document.getElementById("dbg-lamp");
 const dbgFreezeDiff = document.getElementById("dbg-freeze-diff");
+const dbgFastSpawn  = document.getElementById("dbg-fast-spawn");
 
 function debugHudHasFocus() {
   return !!document.activeElement && debugHud.contains(document.activeElement);
@@ -62,6 +64,7 @@ function syncDebugHud() {
   dbgInvuln.classList.toggle("on", debug.invuln);
   dbgLamp.classList.toggle("on", debug.lamp);
   dbgFreezeDiff.classList.toggle("on", debug.freezeDiff);
+  dbgFastSpawn.classList.toggle("on", debug.fastSpawn);
 }
 
 dbgDiff.addEventListener("change", () => {
@@ -108,6 +111,12 @@ dbgFreezeDiff.addEventListener("click", () => {
   debug.freezeDiff = !debug.freezeDiff;
   syncDebugHud();
   dbgFreezeDiff.blur();
+});
+
+dbgFastSpawn.addEventListener("click", () => {
+  debug.fastSpawn = !debug.fastSpawn;
+  syncDebugHud();
+  dbgFastSpawn.blur();
 });
 
 window.addEventListener("keydown", (e) => {

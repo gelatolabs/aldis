@@ -257,5 +257,6 @@ function difficulty() {
 function spawnInterval() {
   const d = difficulty();
   const floor = (gameMode === "coop" || gameMode === "versus") ? 3000 : 5000;
-  return 7500 - (7500 - floor) * d + Math.random() * 1000;
+  const base = 7500 - (7500 - floor) * d + Math.random() * 1000;
+  return debug.fastSpawn ? base / 15 : base;
 }
