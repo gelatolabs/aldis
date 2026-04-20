@@ -1445,6 +1445,13 @@ function drawHUD() {
   ctx.font = "bold 20px 'Libertinus Mono', monospace";
   ctx.fillStyle = "#cfd";
   ctx.fillText("SCORE: " + score, 16, showPause ? 46 : 28);
+
+  if (netInMatch()) {
+    ctx.font = "13px 'Libertinus Mono', monospace";
+    ctx.fillStyle = "#9ab";
+    const label = netPingMs + "ms" + (net.isHost ? " - HOST" : "");
+    ctx.fillText(label, 16, H - 16);
+  }
 }
 
 function drawMorseChart() {

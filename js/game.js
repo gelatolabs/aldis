@@ -121,6 +121,7 @@ function update(dt) {
 
   if (netInMatch()) {
     netSendInputTick();
+    netTickPing();
     if (net.isHost) netSendSnapshot();
   }
 }
@@ -378,6 +379,23 @@ function setupForMode() {
   player.maxHealth = 10;
 }
 
+// ---- Ping ----
+//
+// Each client echoes a "ping" back as "pong" with the original timestamp so
+// the sender can compute round-trip time. Sent from update() once per second
+// while in a match; the most recent RTT is drawn in the HUD.
+
+let netPingMs = 0;
+let lastPingSendAt = 0;
+
+function netTickPing() {
+  if (!netInMatch()) return;
+  const now = performance.now();
+  if (now - lastPingSendAt < 1000) return;
+  lastPingSendAt = now;
+  netSend({ type: "ping", t: now });
+}
+
 // ---- Peer message dispatcher ----
 
 function handlePeerMessage(msg) {
@@ -536,6 +554,13 @@ function handlePeerMessage(msg) {
     case "syncReq":
       // Peer just refocused (or otherwise wants a fresh state); push one now.
       if (net.isHost) netSendSnapshot(true);
+      break;
+
+    case "ping":
+      netSend({ type: "pong", t: +msg.t || 0 });
+      break;
+    case "pong":
+      netPingMs = Math.max(0, Math.round(performance.now() - (+msg.t || 0)));
       break;
   }
 }
