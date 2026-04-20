@@ -42,7 +42,7 @@ function buildMaskCanvas(colorR, colorG, colorB, intensityFn) {
   return c;
 }
 
-const beamGlowCanvas = buildMaskCanvas(255, 245, 200, (along, perp) => {
+const beamGlowCanvas = buildMaskCanvas(255, 248, 215, (along, perp) => {
   const bw = BEAM_NEAR_WIDTH + (BEAM_HALF_WIDTH - BEAM_NEAR_WIDTH) * (along / BEAM_LEN);
   const twoSigmaSq = 2 * (bw * 0.55) * (bw * 0.55);
   const perpFall = Math.exp(-(perp * perp) / twoSigmaSq);

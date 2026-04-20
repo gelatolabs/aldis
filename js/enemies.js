@@ -316,8 +316,8 @@ function enemyWalkPhase(e) {
 
 function shadedFill(c, cx, cy, rx, ry, color, L, z) {
   const base = adjustColor(color, -z * 0.18);
-  const hi   = adjustColor(base,   0.35);
-  const sh   = adjustColor(base,  -0.5);
+  const hi   = adjustColor(base,   0.18);
+  const sh   = adjustColor(base,  -0.28);
   const r = Math.max(rx, ry);
   const gx = cx + L.x * rx * 0.55;
   const gy = cy + L.y * ry * 0.55;
