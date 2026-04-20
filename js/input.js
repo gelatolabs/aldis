@@ -283,7 +283,7 @@ function handleEnemyKill(enemy) {
   if (gameMode === "versus") {
     const list = ENEMY_TYPES.fodder.wordList;
     const newWord = list[Math.floor(Math.random() * list.length)];
-    const newVx = -enemy.vx;
+    const newVx = -enemy.vx * 1.08;
     enemy.word = newWord;
     enemy.vx = newVx;
     enemy.typed = 0;
