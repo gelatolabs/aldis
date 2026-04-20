@@ -128,6 +128,14 @@ let pendingStart = "survival";
 let currentScene = SCENE.splash;
 let sceneTime = 0;
 
+// Message shown briefly on the menu after a match disconnects with the reason.
+let menuNotice = null;
+let menuNoticeUntil = 0;
+function setMenuNotice(text, durationMs) {
+  menuNotice = text;
+  menuNoticeUntil = performance.now() + (durationMs || 5000);
+}
+
 // Input tuning, editable from the settings screen
 const settings = {
   base: 0.0002,

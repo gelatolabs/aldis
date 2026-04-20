@@ -85,7 +85,7 @@ function netStartMatchmaking(mode) {
     }
     if (msg.type === "peerLeft") {
       net.status = "Partner disconnected";
-      if (typeof net.onPeerLeft === "function") net.onPeerLeft();
+      if (typeof net.onPeerLeft === "function") net.onPeerLeft("Partner disconnected");
       // The server will close the socket right after this; tear down our state.
       net.state = "idle";
       return;
@@ -96,7 +96,7 @@ function netStartMatchmaking(mode) {
   ws.addEventListener("close", () => {
     if (net.state === "matched") {
       // Lost the connection mid-match — treat as peer leaving.
-      if (typeof net.onPeerLeft === "function") net.onPeerLeft();
+      if (typeof net.onPeerLeft === "function") net.onPeerLeft("Connection lost");
     }
     if (net.state === "queueing") {
       // Quietly fall back to "idle" so the user can retry.

@@ -56,7 +56,7 @@ function enterMatchmaking(mode) {
     resetGame();
     enterScene(SCENE.game);
   };
-  net.onPeerLeft = () => {
+  net.onPeerLeft = (reason) => {
     // High-score entry is the one place we want to gracefully degrade rather
     // than dump the player back to the menu — we treat the missing peer as
     // having skipped so the local player can still submit.
@@ -74,6 +74,7 @@ function enterMatchmaking(mode) {
       return;
     }
     if (currentScene === SCENE.game) {
+      setMenuNotice(reason || "Partner disconnected");
       enterScene(SCENE.menu);
     }
   };

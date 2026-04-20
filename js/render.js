@@ -349,6 +349,19 @@ function drawMenu() {
 
   drawButtons();
 
+  // Disconnect/notice banner.
+  if (menuNotice && performance.now() < menuNoticeUntil) {
+    const remaining = menuNoticeUntil - performance.now();
+    const alpha = Math.min(1, remaining / 500);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#e0b0b0";
+    ctx.font = "16px 'Libertinus Mono', monospace";
+    ctx.fillText(menuNotice, W / 2, 220);
+    ctx.restore();
+  }
+
   ctx.textAlign = "left";
 }
 
