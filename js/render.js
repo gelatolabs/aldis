@@ -255,7 +255,7 @@ function drawRadarGrid(cx, cy) {
     Math.max(cy, H - cy)
   );
   ctx.save();
-  ctx.strokeStyle = "rgba(40,160,70,0.18)";
+  ctx.strokeStyle = "#071d0d";
   ctx.lineWidth = 1;
   for (let r = 80; r <= maxR; r += 80) {
     ctx.beginPath();
@@ -263,15 +263,12 @@ function drawRadarGrid(cx, cy) {
     ctx.stroke();
   }
   for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+    const cosA = Math.cos(a), sinA = Math.sin(a);
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + Math.cos(a) * maxR, cy + Math.sin(a) * maxR);
+    ctx.lineTo(cx + cosA * maxR, cy + sinA * maxR);
     ctx.stroke();
   }
-  ctx.fillStyle = "rgba(80,220,110,0.35)";
-  ctx.beginPath();
-  ctx.arc(cx, cy, 2.5, 0, Math.PI * 2);
-  ctx.fill();
   ctx.restore();
 }
 
