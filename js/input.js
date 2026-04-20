@@ -259,9 +259,11 @@ function matchEnemy(enemy) {
     if (enemy.typed >= enemy.word.length) {
       enemy.alive = false;
       enemy.deathAnim = 400;
-      const pts = enemy.typeKey === "runner" ? 250 : 50 * enemy.word.length;
-      enemy.deathPoints = pts;
-      score += pts;
+      if (currentScene !== SCENE.story) {
+        const pts = enemy.typeKey === "runner" ? 250 : 50 * enemy.word.length;
+        enemy.deathPoints = pts;
+        score += pts;
+      }
       spawnEnemyExplosion(enemy);
     }
   } else if (expectedMorse.startsWith(enemy.morse)) {
