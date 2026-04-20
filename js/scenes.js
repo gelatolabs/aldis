@@ -26,6 +26,16 @@ function enterScene(s) {
   // Reset the aim only when fresh-opening the calibration screen — not when
   // pausing, which should preserve the in-game aim.
   if (s === SCENE.settings && !paused) setAim(0);
+
+  // Music lifecycle. Gameplay scenes get music; pause (settings) keeps it
+  // running. Story text, menu, leaderboard, matchmaking all stop it.
+  const isGameplay = s === SCENE.game || s === SCENE.story;
+  if (isGameplay && typeof musicStart === "function") {
+    const seed = netInMatch() ? (net.seed | 0) : Math.floor(Math.random() * 2_000_000_000);
+    musicStart(seed);
+  } else if (s !== SCENE.settings && typeof musicStop === "function") {
+    musicStop();
+  }
 }
 
 // ----- Buttons -----

@@ -107,6 +107,8 @@ function frame(now) {
 function update(dt) {
   if (!debug.freezeDiff) elapsed += dt;
 
+  if (typeof musicSetDifficulty === "function") musicSetDifficulty(difficulty());
+
   if (gameMode === "coop") {
     updateCoop(dt);
   } else if (gameMode === "versus") {
@@ -143,8 +145,10 @@ function updateSurvival(dt) {
         if (!debug.invuln && !e.powerup) {
           player.missed += 1;
           playDamage();
+          if (typeof musicOnDamage === "function") musicOnDamage();
           if (player.missed >= player.maxHealth) {
             gameOver = true;
+            if (typeof musicOnDeath === "function") musicOnDeath();
             fetchTopScores();
           }
         }
@@ -178,9 +182,11 @@ function updateCoop(dt) {
         if (!debug.invuln && !e.powerup) {
           player.missed += 1;
           playDamage();
+          if (typeof musicOnDamage === "function") musicOnDamage();
           netSend({ type: "miss", id: e.id, missed: player.missed });
           if (player.missed >= player.maxHealth) {
             gameOver = true;
+            if (typeof musicOnDeath === "function") musicOnDeath();
             netSend({ type: "gameOver" });
             fetchTopCoopScores();
           }
@@ -213,6 +219,7 @@ function updateVersus(dt) {
         if (!debug.invuln) {
           player.missed += 1;
           playDamage();
+          if (typeof musicOnDamage === "function") musicOnDamage();
           netSend({ type: "hpHit", role: net.role, missed: player.missed,
                     y: e.y });
           if (net.isHost) {
@@ -220,6 +227,7 @@ function updateVersus(dt) {
           }
           if (player.missed >= player.maxHealth) {
             versusWon = false;
+            if (typeof musicOnDeath === "function") musicOnDeath();
             netSend({ type: "versusEnd", loserRole: net.role });
             enterScene(SCENE.versusEnd);
           }

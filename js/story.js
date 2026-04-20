@@ -157,6 +157,8 @@ function updateStory(dt) {
         e.escaped = true;
         if (!debug.invuln) {
           playDamage();
+          if (typeof musicOnDamage === "function") musicOnDamage();
+          if (typeof musicOnDeath === "function") musicOnDeath();
           story.gameOver = true;
         }
       }
