@@ -48,7 +48,7 @@ function makeL7Frenzy() {
       delay: i === 0 ? 400 : 60 + Math.random() * 40,
     });
   }
-  slots.push({ word: "airstrike", y: 520, delay: 2000, powerup: "clear" });
+  slots.push({ word: "airstrike", y: 320, delay: 800, powerup: "clear" });
   return slots;
 }
 
@@ -149,7 +149,10 @@ function spawnStoryEnemy(slotIdx) {
   const slot = story.stageSlots[slotIdx];
   const word = slot.word;
   const powerup = slot.powerup;
-  const typeKey = powerup ? "fodder" : (word.length >= 5 ? "heavy" : "fodder");
+  const typeKey = powerup ? "fodder"
+                : word.length >= 5 ? "heavy"
+                : word.length <= 2 ? "runner"
+                : "fodder";
   const type = ENEMY_TYPES[typeKey];
   const margin = 100;
   const y = slot.y != null ? slot.y : margin + Math.random() * (H - 2 * margin);
