@@ -5,31 +5,51 @@
 //   { type: "gameplay", words: ["we","come",...] }   — scripted enemy words
 //   { type: "tutorial" }                             — skipped once the tutorial has been seen
 const STORY_STAGES = [
-  { type: "text", content:
-    "The year is 30XX. The entities are approaching. "
-    + "Armed with your trusty Aldis Combination Signal Lamp Radar Antenna 9000 "
-    + "and English degree, you must fight them off by spelling out their "
-    + "favorite words in morse code!" },
+  { type: "text", content: "The year is 30XX.  You are Nuke Dukem Jr. and Earth is under attack by a species known as \"The Entities\".  After waging a massive thermonuclear war, modern electronics have been deemed useless.  Humans must resort to a more primitive weapon: a big ol' lamp.  It has been discovered that the Entities possess a weakness and sending specific morse codes initiates a self-destruct sequence.  Your English degree has finally come in handy and you have been recruited by the military for your impeccable spelling skills.  Armed with your trusty Aldis Combination Signal Lamp Radar Antenna 9000, your story begins..." },
+  { type: "text", content: "\\cChapter 1: The Beginning\\nYou awaken to the sound of the invasion alarm blaring in your office.  A pounding headache feels as though it is bouncing around in your skull like a ping pong ball.  It is a potent reminder of your excessive partying last night.  The discovery of the morse code weakness has rekindled the human spirit and was cause for a celebration.  However, a fresh batch of invading forces is approaching and there is still much work to be done." },
   { type: "tutorial" },
-  { type: "gameplay", words: ["we", "come", "in", "peace"] },
-  { type: "text", content: "Lorem ipsum" },
-  { type: "gameplay", words: ["hello", "world"] },
-  { type: "text", content: "The end" },
+  { type: "gameplay", words: ["boop", "password", "changeme"] },
+  { type: "text", content: "\\cChapter 2: The Passwords\\nA brief lull settles over the battlefield as you sip your terrible cold brew and scan the kill logs.  Honestly, for a species capable of interstellar space travel, the Entities' self-destruct passwords are embarrassing.  \"CHANGEME\"?  Their IT department must be asleep at the wheel.  You chuckle, finish your brew, and brace for the next wave." },
+  { type: "gameplay", words: ["bleep", "hello", "ow", "who", "is", "you"] },
+  { type: "text", content: "\\cChapter 3: The Noise\\nWeird batch of codes.  It's almost like they're trying to say something.  Probably just the hungover part of your brain inventing meaning from noise.  Either way, orders are orders.  You tap out the codes as instructed and the Entities oblige by exploding." },
+  { type: "gameplay", words: ["ouch", "please", "no", "stop", "that", "hurts"] },
+  { type: "text", content: "\\cChapter 4: The Lunch Break\\nAre they... never mind.  It has arrived!  The second best time of the day - LUNCH!  After blasting away a few more entities, you have just enough time to radio in an order to the best sushi restaurant in town.  Nothing builds an appetite better than a smoke-filled sky of burning Entities!" },
+  { type: "gameplay", words: ["tuna", "roll", "miso", "soup", "french", "fries", "extra", "wasabi"] },
+  { type: "text", content: "\\cChapter 5: Luigi\\nWhat a coincidence, that's exactly what you ordered!  The cosmos must be hungry too.  The sushi arrives and — of course — they forgot your french fries.  Your coworker Ned wanders over to mooch a tuna roll and asks if you've seen his pet iguana Luigi.  You shrug and glance back at the monitor.  Back to work." },
+  { type: "gameplay", words: ["we", "hear", "you", "nuke", "dukem", "jr", "are", "you", "missing", "an", "iguana"] },
+  { type: "text", content: "\\cChapter 6: Friend or Foe?\\nThat was definitely no coincidence - the Entities are attempting to communicate with you!  Could it be a trick or are they attempting to surrender?  You somehow feel as if the signals will reveal their true intentions..." },
+  { type: "gameplay", words: ["omg", "please", "send", "us", "more", "yummy", "delicious", "french", "fries", "human"] },
+  { type: "text", content: "\\cChapter 7: French Fried\\nAfter clearly identifying themselves as the fry thieves you begin to wonder if they are attempting to obtain a source of energy?  An idea pops into your head and you quickly place an order for one million french fries.  The salty goodness should send them into a feeding frenzy and concentrate them in a small area.  This is your chance to wipe them all out!" },
+  { type: "gameplay", words: makeL7Frenzy },
+  { type: "text", content: "\\cChapter 8: Aftermath\\nAfter the smoke clears, all of the Entities have been defeated and Earth proclaims VICTORY!!  Is there anything a fresh batch of french fries can't solve?" },
+  { type: "gameplay", words: ["so", "long", "and", "thanks", "for", "all", "the", "fries"] },
 ];
 
-const STORY_FADE_MS    = 400;
-const STORY_CHAR_MS    = 35;       // per-character reveal rate for text stages
-const STORY_SPAWN_START_MS = 4000; // spawn interval on the first gameplay stage
-const STORY_SPAWN_STEP_MS  = 500;  // how much faster each subsequent stage spawns
-const STORY_SPAWN_MIN_MS   = 1000; // floor for the per-stage spawn interval
-const STORY_POST_MS    = 1000;     // delay after last defeat before next stage
+const STORY_FADE_MS  = 400;
+const STORY_CHAR_MS  = 35;   // per-character reveal rate for text stages
+const STORY_SPAWN_MS = 8000; // spawn interval for gameplay stages
+const STORY_POST_MS  = 1000; // delay after last defeat before next stage
 
 function storySpawnInterval() {
-  let n = 0;
-  for (let i = 0; i <= story.index; i++) {
-    if (STORY_STAGES[i] && STORY_STAGES[i].type === "gameplay") n++;
+  return STORY_SPAWN_MS;
+}
+
+// Level 7 "airstrike" wave: 50 feeding-frenzy entities packed near the top of
+// the screen, then a single bomb near the bottom. Typing the bomb's word
+// detonates its clear-powerup and wipes the whole cluster at once. Regenerated
+// on every stage entry so retries reroll the word assignments and positions.
+function makeL7Frenzy() {
+  const pool = ["yum", "om", "nom", "french", "fries", "eat", "mmm", "wow", "good", "delicious", "thanks"];
+  const slots = [];
+  for (let i = 0; i < 50; i++) {
+    slots.push({
+      word: pool[Math.floor(Math.random() * pool.length)],
+      y: 80 + Math.random() * 100,
+      delay: i === 0 ? 400 : 60 + Math.random() * 40,
+    });
   }
-  return Math.max(STORY_SPAWN_MIN_MS, STORY_SPAWN_START_MS - (n - 1) * STORY_SPAWN_STEP_MS);
+  slots.push({ word: "airstrike", y: 520, delay: 2000, powerup: "clear" });
+  return slots;
 }
 
 const story = {
@@ -89,12 +109,21 @@ function beginStoryStage(i) {
 
   if (stage.type === "gameplay") {
     resetGame();
-    story.stageSlots = stage.words.map(w => ({
-      word: w.toUpperCase(),
-      defeated: false,
-    }));
-    story.stageQueue = stage.words.map((_, idx) => idx);
-    story.spawnTimer = 1200;  // short breather before the first spawn
+    const words = typeof stage.words === "function" ? stage.words() : stage.words;
+    story.stageSlots = words.map(w => {
+      const cfg = typeof w === "string" ? { word: w } : w;
+      return {
+        word: cfg.word.toUpperCase(),
+        defeated: false,
+        x: cfg.x,
+        y: cfg.y,
+        powerup: cfg.powerup || null,
+        delay: cfg.delay,
+      };
+    });
+    story.stageQueue = words.map((_, idx) => idx);
+    const firstSlot = story.stageSlots[0];
+    story.spawnTimer = (firstSlot && firstSlot.delay != null) ? firstSlot.delay : 1200;
     story.postStageTimer = 0;
     story.postStageActive = false;
     story.fadeAlpha = 1;
@@ -117,17 +146,22 @@ function retryStoryStage() {
 }
 
 function spawnStoryEnemy(slotIdx) {
-  const word = story.stageSlots[slotIdx].word;
-  const typeKey = word.length >= 5 ? "heavy" : "fodder";
+  const slot = story.stageSlots[slotIdx];
+  const word = slot.word;
+  const powerup = slot.powerup;
+  const typeKey = powerup ? "fodder" : (word.length >= 5 ? "heavy" : "fodder");
   const type = ENEMY_TYPES[typeKey];
   const margin = 100;
-  const y = margin + Math.random() * (H - 2 * margin);
+  const y = slot.y != null ? slot.y : margin + Math.random() * (H - 2 * margin);
+  const x = slot.x != null ? slot.x : W + 40;
+  const speedMul = type.speedMul * (powerup ? POWERUP_SPEED_MUL : 1) * 0.5;
   enemies.push({
-    x: W + 40,
+    x,
     y,
-    vx: -baseSpeed() * type.speedMul,
+    vx: -baseSpeed() * speedMul,
     word,
     typeKey,
+    powerup: powerup || null,
     typed: 0,
     alive: true,
     hitFlash: 0,
@@ -183,7 +217,11 @@ function updateStory(dt) {
     if (story.spawnTimer <= 0) {
       const idx = story.stageQueue.shift();
       spawnStoryEnemy(idx);
-      story.spawnTimer = storySpawnInterval();
+      const nextIdx = story.stageQueue[0];
+      const nextSlot = nextIdx != null ? story.stageSlots[nextIdx] : null;
+      story.spawnTimer = (nextSlot && nextSlot.delay != null)
+        ? nextSlot.delay
+        : storySpawnInterval();
     }
   }
 
@@ -228,10 +266,22 @@ function updateStoryText(dt) {
   if (stage && stage.type === "text") {
     story.textCharTimer -= dt;
     while (story.textCharTimer <= 0 && story.textShown < stage.content.length) {
-      const ch = stage.content[story.textShown];
-      const pitchMul = charInExclamatoryWord(stage.content, story.textShown) ? 1.18 : 1;
+      const idx = story.textShown;
+      const ch = stage.content[idx];
+      // Skip \n and \c.
+      if (ch === "\\" && stage.content[idx + 1] === "n") {
+        story.textShown += 2;
+        continue;
+      }
+      const atLineStart = idx === 0
+        || (stage.content[idx - 2] === "\\" && stage.content[idx - 1] === "n");
+      if (ch === "\\" && stage.content[idx + 1] === "c" && atLineStart) {
+        story.textShown += 2;
+        continue;
+      }
+      const pitchMul = charInExclamatoryWord(stage.content, idx) ? 1.18 : 1;
       playAnimalese(ch, pitchMul);
-      story.textCharTimer += STORY_CHAR_MS + charPauseAfter(stage.content, story.textShown);
+      story.textCharTimer += STORY_CHAR_MS + charPauseAfter(stage.content, idx);
       story.textShown += 1;
     }
   }
@@ -281,21 +331,53 @@ function drawStoryFade() {
   ctx.restore();
 }
 
+// Wrap story text into visual lines.
+//   \n — line break
+//   \c — center line
+// Each returned entry carries a `consumed` count so the reveal engine can
+// advance `textShown` over the invisible markers without misaligning.
 function wrapText(text, maxW) {
-  const words = text.split(" ");
-  const lines = [];
-  let line = "";
-  for (const w of words) {
-    const trial = line ? line + " " + w : w;
-    if (ctx.measureText(trial).width > maxW && line) {
-      lines.push(line);
-      line = w;
-    } else {
-      line = trial;
+  const result = [];
+  const segments = text.split("\\n");
+  for (let si = 0; si < segments.length; si++) {
+    const segText = segments[si];
+    const hasNewline = si < segments.length - 1;
+    let center = false;
+    let body = segText;
+    if (body.startsWith("\\c")) {
+      center = true;
+      body = body.slice(2);
+    }
+    const words = body.split(" ");
+    const visLines = [];
+    let line = "";
+    for (const w of words) {
+      const trial = line ? line + " " + w : w;
+      if (ctx.measureText(trial).width > maxW && line) {
+        visLines.push(line);
+        line = w;
+      } else {
+        line = trial;
+      }
+    }
+    if (line || visLines.length === 0) visLines.push(line);
+    for (let li = 0; li < visLines.length; li++) {
+      const t = visLines[li];
+      const isLast = li === visLines.length - 1;
+      const first = li === 0;
+      let consumed = t.length;
+      if (first && center) consumed += 2;  // stripped \c prefix
+      if (!isLast) consumed += 1;          // wrapText consumed a space
+      else if (hasNewline) consumed += 2;  // the \n between segments
+      result.push({
+        text: t,
+        center,
+        preInvisible: first && center ? 2 : 0,
+        consumed,
+      });
     }
   }
-  if (line) lines.push(line);
-  return lines;
+  return result;
 }
 
 function drawStoryText() {
@@ -316,16 +398,27 @@ function drawStoryText() {
     const shown = story.textShown;
     const lineH = 36;
     const totalH = lineH * lines.length;
-    const startY = (H - totalH) / 2;
+    const startY = (H - totalH) / 2 - 24;
 
     let drawn = 0;
     for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
       const remain = shown - drawn;
       if (remain <= 0) break;
-      const visible = lines[i].slice(0, remain);
-      ctx.fillText(visible, blockX, startY + lineH * (i + 1) - 8);
-      // +1 accounts for the space that wrapText consumed at each line break
-      drawn += lines[i].length + 1;
+      const visibleCount = Math.max(0, Math.min(line.text.length,
+                                                remain - line.preInvisible));
+      if (visibleCount > 0) {
+        const visible = line.text.slice(0, visibleCount);
+        const y = startY + lineH * (i + 1) - 8;
+        if (line.center) {
+          ctx.textAlign = "center";
+          ctx.fillText(visible, W / 2, y);
+        } else {
+          ctx.textAlign = "left";
+          ctx.fillText(visible, blockX, y);
+        }
+      }
+      drawn += line.consumed;
     }
 
     if (storyTextFullyPrinted() && !story.transitioning) {
@@ -345,16 +438,34 @@ function drawStorySentence() {
   ctx.save();
   ctx.textAlign = "left";
   ctx.font = "bold 28px 'Libertinus Mono', monospace";
-  let x = 32;
-  const y = H - 36;
+  const leftX = 32;
+  const maxX = W - 32;
+  const lineH = 34;
+  const spaceW = ctx.measureText(" ").width;
+
+  const lines = [[]];
+  let x = leftX;
   for (let i = 0; i < story.stageSlots.length; i++) {
     const s = story.stageSlots[i];
     const text = s.defeated ? s.word : "_".repeat(s.word.length);
-    ctx.fillStyle = s.defeated
-      ? "rgba(220,240,220,0.55)"
-      : "rgba(150,170,170,0.28)";
-    ctx.fillText(text, x, y);
-    x += ctx.measureText(text + " ").width;
+    const w = ctx.measureText(text).width;
+    if (lines[lines.length - 1].length > 0 && x + w > maxX) {
+      lines.push([]);
+      x = leftX;
+    }
+    lines[lines.length - 1].push({ slot: s, text, x });
+    x += w + spaceW;
+  }
+
+  const bottomY = H - 36;
+  for (let li = 0; li < lines.length; li++) {
+    const y = bottomY - (lines.length - 1 - li) * lineH;
+    for (const item of lines[li]) {
+      ctx.fillStyle = item.slot.defeated
+        ? "rgba(220,240,220,0.55)"
+        : "rgba(150,170,170,0.28)";
+      ctx.fillText(item.text, item.x, y);
+    }
   }
   ctx.restore();
 }
