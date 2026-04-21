@@ -130,12 +130,14 @@ function update(dt) {
 
 function updateSurvival(dt) {
   if (freezeTimer > 0) freezeTimer = Math.max(0, freezeTimer - dt);
-  spawnTimer -= dt;
-  if (spawnTimer <= 0) {
-    spawnEnemy();
-    spawnTimer = spawnInterval();
-  }
   const frozen = freezeTimer > 0;
+  if (!frozen) {
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnEnemy();
+      spawnTimer = spawnInterval();
+    }
+  }
   for (const e of enemies) {
     if (e.alive) {
       if (!frozen) e.x += e.vx * (dt / 1000);
@@ -162,8 +164,9 @@ function updateSurvival(dt) {
 
 function updateCoop(dt) {
   if (freezeTimer > 0) freezeTimer = Math.max(0, freezeTimer - dt);
+  const frozen = freezeTimer > 0;
   // Host spawns; peer waits for "spawn" messages.
-  if (net.isHost) {
+  if (net.isHost && !frozen) {
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
       spawnCoopEnemy();
@@ -171,7 +174,6 @@ function updateCoop(dt) {
     }
   }
 
-  const frozen = freezeTimer > 0;
   for (const e of enemies) {
     if (e.alive) {
       if (!frozen) e.x += e.vx * (dt / 1000);
